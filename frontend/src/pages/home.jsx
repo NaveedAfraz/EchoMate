@@ -17,7 +17,6 @@ import { features } from "@/config/cardDetails";
 function Home() {
   return (
     <>
-      <NavBar />
       <div className="flex flex-col items-center justify-center mt-24 gap-4 h-80">
         <h1 className="text-4xl font-bold">Welcome to EchoChat</h1>
         <p className="text-gray-500 my-2">
@@ -46,7 +45,7 @@ function Home() {
               shadow-sm hover:shadow-md
               w-[300px] min-h-[250px]
               flex flex-col justify-between
-              hover:scale-105 transition-transform duration-200
+              hover:scale-105
             `}
           >
             <CardHeader className="space-y-4">

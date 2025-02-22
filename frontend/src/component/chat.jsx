@@ -5,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/3px-tile.png";
 import ProfileUpload from "@/helper/ProfileImg";
 import { IKImage } from "imagekitio-react";
+import { useAuth } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 function Chat() {
+  const { userId } = useAuth();
+  console.log(userId);
+
   const IntialMessages = [
     {
       id: 1,
@@ -80,6 +85,7 @@ function Chat() {
       sender: "assistant",
     },
   ];
+
   const [messages, setMessages] = useState(IntialMessages);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -95,27 +101,35 @@ function Chat() {
     const formData = new FormData();
     formData.append("file", file);
     setLoading(true);
-    const response = await fetch("http://localhost:3006/api/imageUpload", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("http://localhost:3006/api/imageUpload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      console.log(response);
 
-    const data = await response.json();
-    console.log(data);
-    if (data.success) {
-      console.log("Uploaded Image URL:", data.imageUrl);
-      const baseUrl = "https://ik.imagekit.io/hicgxab6ot";
-      const filePath = data.imageUrl.replace(baseUrl, "");
-      const normalizedPath = filePath.startsWith("/")
-        ? filePath
-        : `/${filePath}`;
-      setFile(normalizedPath);
-      // console.log("Normalized File Path:", normalizedPath);
+      const data = await response.json();
+      console.log(data);
+      if (data.success) {
+        console.log("Uploaded Image URL:", data.imageUrl);
+        const baseUrl = "https://ik.imagekit.io/hicgxab6ot";
+        const filePath = data.imageUrl.replace(baseUrl, "");
+        const normalizedPath = filePath.startsWith("/")
+          ? filePath
+          : `/${filePath}`;
+        setFile(normalizedPath);
+        toast("Image uploaded successfully");
+        // console.log("Normalized File Path:", normalizedPath);
+      }
+    } catch (error) {
+      toast("Error uploading file");
+      console.error("Error uploading file:", error);
     }
     setLoading(false);
   };
   // console.log(messages);
-  
+
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
     setMessages((prevMessages) => [
@@ -132,15 +146,14 @@ function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-blue-950 relative">
-      <div className="absolute inset-0">
+    <div className="flex flex-col h-[100%] relative">
+      <div className="absolute inset-0 ">
         <img
           src={logo}
           alt="logo"
           className="w-full h-full object-cover blur-sm"
         />
       </div>
-
       <div className="relative flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto p-4 pb-6">
           {messages.map((message) => (
@@ -160,8 +173,8 @@ function Chat() {
               <p
                 className={`${
                   message.sender === "user"
-                    ? "bg-amber-600 self-end"
-                    : "bg-blue-600 self-start"
+                    ? "bg-blue-600 self-end text-white"
+                    : " bg-amber-50 self-start"
                 } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
               >
                 {message.content}
@@ -170,67 +183,68 @@ function Chat() {
           ))}
         </div>
       </div>
-
       {/* Input section */}
-      <div className="w-[80%] mx-auto relative p-4">
-        {/* You can display a preview image if needed */}
-        {loading && (
-          <div className="text-white  flex items-center m-3 ">
-            <Loader2 className="animate-spin" />
+      <div className="w-full p-4  rounded-lg backdrop-blur-sm">
+        <div className="w-[100%] mx-auto  relative border-none">
+          {/* You can display a preview image if needed */}
+          {loading && (
+            <div className="text-white  flex items-center m-3 ">
+              <Loader2 className="animate-spin" />
+            </div>
+          )}
+          {filePath && (
+            <>
+              {console.log(filePath)}
+              <IKImage
+                urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                path={filePath}
+                transformation={[{ height: 100, width: 100 }]}
+                alt="Profile Preview"
+              />{" "}
+            </>
+          )}
+          <div className="relative rounded-lg flex items-center">
+            <Input
+              placeholder="Type a message..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="rounded-full h-12 pl-14 pr-14 bg-white/80 backdrop-blur-sm focus:ring-2  focus:ring-blue-500 border-none"
+            />
+
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={(e) => {
+                if (e.target.files[0]) {
+                  handleUpload(e.target.files[0]);
+                }
+              }}
+            />
+            <ProfileUpload ref={fileInputRef} />
+            {/* Pin button that triggers file input */}
+            <Button
+              onClick={handleFileClick}
+              className="absolute left-2 p-2 hover:bg-gray-100/80 transition-colors rounded-full"
+              variant="ghost"
+              size="icon"
+              type="button"
+            >
+              <PinIcon className="h-5 w-5 text-gray-600" />
+            </Button>
+
+            <Button
+              className="absolute right-2 p-2 bg-blue-600 hover:bg-blue-700 transition-colors rounded-full"
+              size="icon"
+              onClick={handleSend}
+            >
+              <Send className="h-5 w-5 text-white" />
+            </Button>
           </div>
-        )}
-        {filePath && (
-          <>
-            {console.log(filePath)}
-            <IKImage
-              urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-              path={filePath}
-              transformation={[{ height: 200, width: 200 }]}
-              alt="Profile Preview"
-            />{" "}
-          </>
-        )}
-        <div className="relative flex items-center">
-          <Input
-            placeholder="Type a message..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="rounded-full h-12 pl-14 pr-14 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 border-none"
-          />
-
-          {/* Hidden file input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*,.pdf,.doc,.docx"
-            onChange={(e) => {
-              if (e.target.files[0]) {
-                handleUpload(e.target.files[0]);
-              }
-            }}
-          />
-          <ProfileUpload ref={fileInputRef} />
-          {/* Pin button that triggers file input */}
-          <Button
-            onClick={handleFileClick}
-            className="absolute left-2 p-2 hover:bg-gray-100/80 transition-colors rounded-full"
-            variant="ghost"
-            size="icon"
-            type="button"
-          >
-            <PinIcon className="h-5 w-5 text-gray-600" />
-          </Button>
-
-          <Button
-            className="absolute right-2 p-2 bg-blue-600 hover:bg-blue-700 transition-colors rounded-full"
-            size="icon"
-            onClick={handleSend}
-          >
-            <Send className="h-5 w-5 text-white" />
-          </Button>
         </div>
-      </div>
+      </div>{" "}
     </div>
   );
 }

@@ -61,7 +61,7 @@ function NavBar() {
                   asChild
                   className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
                 >
-                  <SignInButton />
+                  <Link to="/login">Sign In</Link>
                 </Button>
               </SignedOut>
               <SignedIn>

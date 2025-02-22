@@ -1,8 +1,14 @@
 import React from "react";
 import NavBar from "../component/navbar";
+import { SignIn } from "@clerk/clerk-react";
 function Login() {
   return (
-    <NavBar />
+    <>
+      <div className="flex items-center justify-center h-screen"> 
+        <SignIn />
+      </div>
+       
+    </>
   );
 }
 
