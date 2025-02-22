@@ -10,7 +10,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
     },
     {
       id: 2,
-      name: "John Doe",
+      name: "John  Doe",
       image: "logo",
       lastMessage: "Hello, how are you?",
     },
@@ -26,21 +26,46 @@ function ChatList({ selectedChat, setSelectedChat }) {
       image: "logo",
       lastMessage: "Hello, how are you?",
     },
+    {
+      id: 5,
+      name: "John Doe",
+      image: "logo",
+      lastMessage: "Hello, how are you?",
+    },
+    {
+      id: 6,
+      name: "John Doe",
+      image: "logo",
+      lastMessage: "Hello, how are you?",
+    },
+    {
+      id: 7,
+      name: "John Doe",
+      image: "logo",
+      lastMessage: "Hello, how are you?",
+    },
+    {
+      id: 8,
+      name: "John Doe",
+      image: "logo",
+      lastMessage: "Hello, how are you?",
+    },
+
   ];
 
   return (
     <div>
       <div
-        className={`flex flex-col gap-2 bg-amber-500 p-5`}
+        className={`flex flex-col gap-2  p-5`}
       >
-        <div className="flex items-center flex-col gap-2">
+        <div className="flex my-2 items-center flex-col gap-2">
           {chatList.map((chat) => (
-            <div key={chat.id} className="flex items-center gap-4 w-full">
-              <div className="w-10 h-10 bg-amber-600 rounded-full">
+            <div key={chat.id} className="flex items-center cursor-pointer bg-blue-950 rounded-xl p-2 gap-4 w-full">
+              <div className="w-10 h-10 rounded-full">
                 <img src={chat?.image} alt="logo" />
               </div>
               <div className="flex flex-col">
-                <p className="text-sm font-bold">{chat.name}</p>
+                <p className="text-lg font-bold">{chat.name}</p>
               </div>
             </div>
           ))}

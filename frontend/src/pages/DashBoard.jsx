@@ -5,12 +5,12 @@ import NavBar from "@/component/navbar";
 function DashBoard() {
   const [selectedChat, setSelectedChat] = useState(3);
   return (
-    <div>
+      <div className="flex flex-col">
       <NavBar />
-      <div className={`grid grid-cols-12 bg-gray-600 h-screen`}>
+        <div className={`flex `}>
         <div
-          className={`col-span-3 bg-amber-600 ${
-            selectedChat ? "hidden sm:block" : "block "
+            className={`col-span-4 w-xl ${
+            selectedChat ? "hidden md:block" : ""
           }`}
         >
           <ChatList
@@ -18,7 +18,7 @@ function DashBoard() {
             setSelectedChat={setSelectedChat}
           />
         </div>
-        <div className={`${selectedChat ? "col-span-12" : "hidden"}`}>
+        <div className={`overflow-x-hidden h-[90%] ${selectedChat ? "col-span-12" : "hidden"}`}>
           <Chat />
         </div>
       </div>
