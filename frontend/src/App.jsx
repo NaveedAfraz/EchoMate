@@ -19,7 +19,7 @@ function App() {
 
   const location = useLocation();
   useEffect(() => {
-    if (isSignedIn && location.pathname === "/") {
+    if (isSignedIn && location.pathname === "/" || location.pathname === "/login") {
       navigate("/home");
     }
   }, [isSignedIn, navigate, location.pathname]);
