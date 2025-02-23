@@ -3,11 +3,20 @@ import App from "./App.jsx";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { BrowserRouter as Router } from "react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 createRoot(document.getElementById("root")).render(
-  <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY} signUpUrl="/sign-up" signInUrl="/login">
+  <ClerkProvider
+    publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+    signUpUrl="/sign-up"
+    signInUrl="/login"
+  >
+   
     <Router>
-    <Toaster />
-      <App />
+  
+        <Toaster />
+        <App />
+
     </Router>
   </ClerkProvider>
 );

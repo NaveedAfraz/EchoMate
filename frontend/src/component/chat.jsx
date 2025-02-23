@@ -90,7 +90,7 @@ function Chat() {
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const fileInputRef = useRef(null);
-  // We'll store the file path (not the full URL) here
+
   const [filePath, setFile] = useState(null);
 
   const handleFileClick = () => {

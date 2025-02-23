@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 
 export default function ProfileUpload() {
   const { user } = useUser();
-  console.log(user);
+  // console.log(user);
   
   return (
     <IKContext
@@ -29,4 +29,5 @@ export default function ProfileUpload() {
       />
     </IKContext>
   );
+  
 }

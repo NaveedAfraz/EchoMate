@@ -15,8 +15,9 @@ app.use(
 
 app.use("/api", requireAuth());
 const imgRoute = require("./helper/imageUpload");
+const userRoute = require("./router/chat/chatList");
 app.use("/api/imageUpload", imgRoute);
-
+app.use("/api/fetchUsersList", userRoute);
 // app.get("/", (req, res) => {
 //   res.send("Hello World!");
 // })
