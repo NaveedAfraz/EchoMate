@@ -10,19 +10,22 @@ import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useLocation } from "react-router";
+import { useSelector } from "react-redux";
 function Chat() {
   const { userId } = useAuth();
   console.log(userId);
   const location = useLocation();
   const reciverID = location.pathname.split("/")[3];
   console.log(reciverID);
-  
+
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const fileInputRef = useRef(null);
-
   const [filePath, setFile] = useState(null);
+  // const { toast } = useToast();
+  const { chatuserlist } = useSelector((state) => state.chatlist);
+  console.log(chatuserlist, "chatuserlist");
 
   const handleFileClick = () => {
     fileInputRef.current.click();
@@ -96,6 +99,11 @@ function Chat() {
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
+    if (chatuserlist[0].requestStatus == "pending") {
+      //alert("pending");
+      toast("Please wait for the user to accept your request");
+      return;
+    }
     setMessages((prevMessages) => [
       ...prevMessages,
       {
