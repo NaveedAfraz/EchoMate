@@ -7,86 +7,91 @@ import ProfileUpload from "@/helper/ProfileImg";
 import { IKImage } from "imagekitio-react";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
-
+import { useMutation, useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { useLocation } from "react-router";
 function Chat() {
   const { userId } = useAuth();
   console.log(userId);
+  const location = useLocation();
+  const reciverID = location.pathname.split("/")[3];
+  console.log(reciverID);
 
-  const IntialMessages = [
-    {
-      id: 1,
-      content: "Hello, how are you?",
-      sender: "user",
-    },
-    {
-      id: 2,
-      content: "I'm fine, thank you!",
-      sender: "assistant",
-    },
-    {
-      id: 3,
-      content:
-        "What's your name? bedhnjf  hbnvmkdwcd ndc f dc udnjcjd sccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc szzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzfcxdcfgvhbnjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
-      sender: "user",
-    },
-    {
-      id: 4,
-      content: "My name is EchoChat.",
-      sender: "assistant",
-    },
-    {
-      id: 5,
-      content: "Hello, how are you?",
-      sender: "user",
-    },
-    {
-      id: 6,
-      content: "I'm fine, thank you!",
-      sender: "assistant",
-    },
-    {
-      id: 7,
-      content: "Hello, how are you?",
-      sender: "user",
-    },
-    {
-      id: 8,
-      content: "I'm fine, thank you!",
-      sender: "assistant",
-    },
-    {
-      id: 9,
-      content: "Hello, how are you?",
-      sender: "user",
-    },
-    {
-      id: 10,
-      content: "I'm fine, thank you!",
-      sender: "assistant",
-    },
-    {
-      id: 11,
-      content: "Hello, how are you?",
-      sender: "user",
-    },
-    {
-      id: 12,
-      content: "I'm fine, thank you!",
-      sender: "assistant",
-    },
-    {
-      id: 13,
-      content: "Hello, how are you?",
-      sender: "user",
-    },
-    {
-      id: 14,
-      content: "I'm fine, thank you!",
-      sender: "assistant",
-    },
-  ];
+  // const IntialMessages = [
+  //   {
+  //     id: 1,
+  //     content: "Hello, how are you?",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 2,
+  //     content: "I'm fine, thank you!",
+  //     sender: "assistant",
+  //   },
+  //   {
+  //     id: 3,
+  //     content:
+  //       "What's your name? bedhnjf  hbnvmkdwcd ndc f dc udnjcjd sccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc szzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzfcxdcfgvhbnjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 4,
+  //     content: "My name is EchoChat.",
+  //     sender: "assistant",
+  //   },
+  //   {
+  //     id: 5,
+  //     content: "Hello, how are you?",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 6,
+  //     content: "I'm fine, thank you!",
+  //     sender: "assistant",
+  //   },
+  //   {
+  //     id: 7,
+  //     content: "Hello, how are you?",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 8,
+  //     content: "I'm fine, thank you!",
+  //     sender: "assistant",
+  //   },
+  //   {
+  //     id: 9,
+  //     content: "Hello, how are you?",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 10,
+  //     content: "I'm fine, thank you!",
+  //     sender: "assistant",
+  //   },
+  //   {
+  //     id: 11,
+  //     content: "Hello, how are you?",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 12,
+  //     content: "I'm fine, thank you!",
+  //     sender: "assistant",
+  //   },
+  //   {
+  //     id: 13,
+  //     content: "Hello, how are you?",
+  //     sender: "user",
+  //   },
+  //   {
+  //     id: 14,
+  //     content: "I'm fine, thank you!",
+  //     sender: "assistant",
+  //   },
+  // ];
 
-  const [messages, setMessages] = useState(IntialMessages);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const fileInputRef = useRef(null);
@@ -130,6 +135,39 @@ function Chat() {
   };
   // console.log(messages);
 
+  const {} = useQuery({
+    queryKey: ["messages"],
+    queryFn: async () => {
+      const response = await axios.get("http://localhost:3006/api/chat", {
+        withCredentials: true,
+      });
+      console.log(response);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log(data);
+    },
+    onError: (error) => {
+      console.error(error);
+    },
+  });
+
+  const {} = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post("http://localhost:3006/api/chat", {
+        withCredentials: true,
+      });
+      console.log(response);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log(data);
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
     setMessages((prevMessages) => [
@@ -156,31 +194,39 @@ function Chat() {
       </div>
       <div className="relative flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto p-4 pb-6">
-          {messages.map((message) => (
-            <div key={message.id} className="flex flex-col mb-4">
-              {message.image && (
-                <div className="flex justify-end p-2">
-                  <div className="w-50 bg-amber-600 p-2 rounded-lg">
-                    <IKImage
-                      urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                      path={message.image}
-                      transformation={[{ height: 200, width: 200 }]}
-                      alt="IMage Preview"
-                    />
+          {messages.length !== 0 ? (
+            messages.map((message) => (
+              <div key={message.id} className="flex flex-col mb-4">
+                {message.image && (
+                  <div className="flex justify-end p-2">
+                    <div className="w-50 bg-amber-600 p-2 rounded-lg">
+                      <IKImage
+                        urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                        path={message.image}
+                        transformation={[{ height: 200, width: 200 }]}
+                        alt="IMage Preview"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
-              <p
-                className={`${
-                  message.sender === "user"
-                    ? "bg-blue-600 self-end text-white"
-                    : " bg-amber-50 self-start"
-                } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
-              >
-                {message.content}
+                )}
+                <p
+                  className={`${
+                    message.sender === "user"
+                      ? "bg-blue-600 self-end text-white"
+                      : " bg-amber-50 self-start"
+                  } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                >
+                  {message.content}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="flex  justify-center h-full">
+              <p className="text-lg text-gray-600">
+                Please send a message for conversation
               </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
       {/* Input section */}

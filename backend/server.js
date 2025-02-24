@@ -15,12 +15,11 @@ app.use(
 
 app.use("/api", requireAuth());
 const imgRoute = require("./helper/imageUpload");
-const userRoute = require("./router/chat/chatList");
+const userRoute = require("./router/chat/chats");
+const nodificationRoute = require("./router/notification/notification");
 app.use("/api/imageUpload", imgRoute);
-app.use("/api/fetchUsersList", userRoute);
-// app.get("/", (req, res) => {
-//   res.send("Hello World!");
-// })
+app.use("/api/users", userRoute);
+app.use("/api/notification", nodificationRoute);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port http://localhost:${process.env.PORT}`);

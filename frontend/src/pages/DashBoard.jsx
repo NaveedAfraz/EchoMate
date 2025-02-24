@@ -6,12 +6,12 @@ function DashBoard() {
   const [selectedChat, setSelectedChat] = useState(null);
   const params = useParams();
   return (
-    <div className="flex flex-col">
-      <div className="flex h-[92.55vh]">
+    <div className="flex flex-col `">
+      <div className="flex h-[92.55vh] ">
         <div
           className={`col-span-4 w-xl h-0 md:block ${
-            params.id  ? "hidden" : ""
-          }`}
+            params.id !== null ? "hidden" : ""
+          } ` }
         >
           <ChatList
             selectedChat={selectedChat}
@@ -20,7 +20,7 @@ function DashBoard() {
         </div>
         <div
           className={`overflow-x-hidden ${
-            params.id !== null ? "col-span-12" : "hidden"
+            params.id !== null ? "w-full" : "hidden"
           }`}
         >
           <Outlet />
