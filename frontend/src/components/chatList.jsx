@@ -26,6 +26,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
         const endpoint = search
           ? `http://localhost:3006/api/users/fetchUsers/${search}`
           : `http://localhost:3006/api/users/fetchRequestedUsers`;
+        console.log(endpoint, "endpoint");
 
         const response = await axios.get(endpoint, { withCredentials: true });
         console.log(response);
@@ -45,9 +46,9 @@ function ChatList({ selectedChat, setSelectedChat }) {
     },
   });
 
-  useEffect(() => {
-    refetch();
-  }, [search]);
+  // useEffect(() => {
+  //   refetch();
+  // }, [search]);
 
   const navigate = useNavigate();
   const handleSendRequest = async (reciverID) => {
@@ -133,6 +134,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
               )
             )}
       </div>
+      {isLoading && <div className="text-white">Loading...</div>}
     </div>
   );
 }

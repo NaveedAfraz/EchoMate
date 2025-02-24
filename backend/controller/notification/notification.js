@@ -15,14 +15,14 @@ const fetchNodifications = async (req, res) => {
     );
 
     console.log(rows, "rows");
-    const filteredRows = rows.filter((row) => row.read != 0);
+    const filteredRows = rows.filter((row) => row.read == 0);
     console.log(filteredRows, "filteredRows");
 
-    if (filteredRows.length === 0) {
-      return res.status(400).json({
-        message: "No notifications found",
-      });
-    }
+    // if (filteredRows.length === 0) {
+    //   return res.status(400).json({
+    //     message: "No notifications found",
+    //   });
+    // }
     res.status(200).json({
       message: "Notifications fetched successfully",
       data: filteredRows,
@@ -40,7 +40,7 @@ const handleRequest = async (req, res) => {
   const { id } = req.params;
   const { type, requestID } = req.body;
   //console.log(id, type, requestID);
-  try {    
+  try {
     const [rows] = await pool.query(
       "UPDATE request SET requestStatus = ? WHERE requestID = ?",
       [type, requestID]
@@ -51,10 +51,26 @@ const handleRequest = async (req, res) => {
         message: "Request not found",
       });
     }
+    console.log(rows, "rows of request");
+
+    const [notification] = await pool.query(
+      "SELECT notificationid FROM request WHERE requestID = ?",
+      [requestID]
+    );
+    // console.log(notification, "notification");
+
+    let notificationID = notification[0].notificationid;
+    console.log(notificationID, "notificationID");
+
+    if (notification.length === 0) {
+      return res.status(404).json({
+        message: "Notification not found for this request",
+      });
+    }
 
     const query2 =
       "UPDATE notifications SET `read` = ? WHERE notificationsID = ?";
-    const [rows2] = await pool.query(query2, [true, requestID]);
+    const [rows2] = await pool.query(query2, [true, notificationID]);
     console.log(rows2, "rows2");
     res.status(200).json({
       message: "Request handled successfully",

@@ -9,17 +9,18 @@ const getSearchResults = async (req, res) => {
     }
 
     const users = await clerkClient.users.getUserList();
-    // console.log(users, "users");
+    console.log(users, "users");
     const q = "SELECT * FROM request WHERE senderID = ?";
     const values = [req.auth?.userId];
     const [result] = await pool.query(q, values);
     //console.log(result, "result.rows");
+    console.log(searchTerm, "searchTerm");
 
     if (!users) {
       console.log("Users not found");
     }
     const filteredUsers = users.data.filter((user) => {
-      return user.firstName.includes(searchTerm);
+      return (user.firstName || "").includes(searchTerm);
     });
     const formattedUsers = filteredUsers.map((user) => ({
       id: user.id,
@@ -136,10 +137,10 @@ const getReqAccepted = async (req, res) => {
     }
     const q = "SELECT * FROM request WHERE senderID = ?";
     const [rows] = await pool.execute(q, [senderID]);
-    // console.log(rows);
+    // console.log(rows, "rows");
 
     const receiverID = rows.map((row) => row.receiverID);
-    console.log(receiverID);
+    // console.log(receiverID);
 
     if (rows.length === 0) {
       return res
@@ -152,14 +153,18 @@ const getReqAccepted = async (req, res) => {
     const [result] = await pool.query(q1, values);
 
     const users = await clerkClient.users.getUserList({ ids: receiverID });
+    //  console.log(users, "users");
     const formattedUsers = users.data
       .filter((user) => user.id != senderID)
-      .map((user) => ({
-        id: user.id,
-        UserName: `${user.firstName} ${user.lastName ? user.lastName : ""}`,
-        image: user.imageUrl,
-        requested: result.some((request) => request.receiverID === user.id),
-      }));
+      .map((user) => {
+        const request = result.find((req) => req.receiverID === user.id);
+        return {
+          id: user.id,
+          UserName: `${user.firstName} ${user.lastName ? user.lastName : ""}`,
+          image: user.imageUrl,
+          requestStatus: request ? request.requestStatus : null,
+        };
+      });
     return res.status(200).json({ data: formattedUsers });
   } catch (error) {
     console.log(error);

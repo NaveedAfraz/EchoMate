@@ -1,52 +1,49 @@
-import { useQuery } from "@tanstack/react-query";
-import React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useEffect } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import { Loader } from "lucide-react";
 import { IKImage } from "imagekitio-react";
 import Skeleton from "react-loading-skeleton";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 function Nodifications() {
   const { userId } = useAuth();
   console.log(userId);
-
+  const queryClient = useQueryClient();
   const {
     data: notificationData,
     isLoading,
     isError,
     error,
+    isSuccess,
+    status,
+    fetchStatus,
   } = useQuery({
-    queryKey: ["nodifications"],
+    queryKey: ["notifications", userId],
     queryFn: async () => {
+      console.log(userId);
       try {
-        console.log(userId, "userId");
-        if (!userId) {
-          return;
-        }
         const response = await axios.get(
           `http://localhost:3006/api/notification/${userId}`,
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
-        console.log(response.data);
+        if (response.data.length != 0) {
+          toast.success("Notifications fetched successfully");
+        }
         return response.data;
       } catch (error) {
-        console.log(error.response.data);
-        throw new Error(error.response.data.message);
+        console.log(error);
+
+        throw new Error(
+          error.response.data.message || "Failed to fetch notifications"
+        );
       }
     },
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
-    retry: 1,
-    onSuccess: (data) => {
-      console.log(data);
-    },
-    onError: (error) => {
-      console.log(error);
-    },
+    enabled: Boolean(userId),
   });
+
   console.log(notificationData);
   const defaultImage = `https://robohash.org/${userId}.png`;
 
@@ -60,6 +57,8 @@ function Nodifications() {
         }
       );
       console.log(response.data);
+      queryClient.invalidateQueries(["notifications", userId]);
+      toast.success("Request handled successfully");
       return response.data;
     } catch (error) {
       console.log(error);
@@ -82,7 +81,7 @@ function Nodifications() {
                     handleRequest("accept", data.requestID, data.notificationid)
                   }
                   variant="default"
-                  className=" absolute right-30 "
+                  className=" absolute right-30 cursor-pointer"
                 >
                   Accept
                 </Button>
@@ -91,7 +90,7 @@ function Nodifications() {
                     handleRequest("reject", data.requestID, data.notificationid)
                   }
                   variant="destructive"
-                  className=" absolute right-10 "
+                  className=" absolute right-10 cursor-pointer"
                 >
                   Reject
                 </Button>
@@ -106,6 +105,9 @@ function Nodifications() {
               <Loader className="animate-spin" />
             </p>
           )}
+      {notificationData?.data.length == 0 && (
+        <p className="text-2xl font-bold">No Notifications Found</p>
+      )}
       {isError && <p className="text-2xl font-bold"> {error.message}</p>}
     </div>
   );
