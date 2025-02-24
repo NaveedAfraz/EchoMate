@@ -14,8 +14,8 @@ import Sign_Up from "./pages/sign-up";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import Home from "./pages/home";
 import DashBoard from "./pages/DashBoard";
-import NavBar from "./component/navbar";
-import Chat from "./component/chat";
+import NavBar from "./components/navbar";
+import Chat from "./components/chat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Nodifications from "./pages/nodifications";
 
@@ -28,7 +28,8 @@ function App() {
   useEffect(() => {
     if (
       (isSignedIn && location.pathname === "/") ||
-      location.pathname === "/login" && userId || location.pathname === "/"
+      (location.pathname === "/login" && userId) ||
+      location.pathname === "/"
     ) {
       navigate("/home");
     }

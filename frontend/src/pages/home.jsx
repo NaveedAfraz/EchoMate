@@ -1,7 +1,7 @@
 import { SignOutButton, UserButton } from "@clerk/clerk-react";
 import React from "react";
 import { Link } from "react-router";
-import NavBar from "../component/navbar";
+import NavBar from "../components/navbar";
 import {
   Card,
   CardContent,
@@ -69,7 +69,6 @@ function Home() {
           </Card>
         ))}
       </div>
-
 
       <div className="bg-gray-50 py-16 mt-20">
         <div className="max-w-7xl mx-auto px-4">

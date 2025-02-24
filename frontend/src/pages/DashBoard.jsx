@@ -1,5 +1,5 @@
-import ChatList from "@/component/chatList";
-import Chat from "@/component/chat";
+import ChatList from "@/components/chatList";
+import Chat from "@/components/chat";
 import React, { useState } from "react";
 import { Outlet, useParams } from "react-router";
 function DashBoard() {
@@ -11,7 +11,7 @@ function DashBoard() {
         <div
           className={`col-span-4 w-xl h-0 md:block ${
             params.id !== null ? "hidden" : ""
-          } ` }
+          } `}
         >
           <ChatList
             selectedChat={selectedChat}
