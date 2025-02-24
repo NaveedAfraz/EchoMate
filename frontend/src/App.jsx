@@ -47,16 +47,19 @@ function App() {
   return (
     <>
       <QueryClientProvider client={queryClient}>
+        <NavBar />
         <Routes>
-          <Route path="/" element={<NavOutlet />}>
-            <Route path="/dashboard" element={<DashBoard />}>
-              <Route path="chat/:userName" element={<Chat />} />
-            </Route>
-            <Route path="/home" element={<Home />} />
-            <Route path="/notifications" element={<Nodifications />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/sign-up" element={<Sign_Up />} />
+          {/* <Route path="/" element={<NavOutlet />}> */}
+
+          <Route path="/dashboard" element={<DashBoard />}>
+            <Route path="chat/:userName/:receiverID" element={<Chat />} />
           </Route>
+
+          <Route path="/home" element={<Home />} />
+          <Route path="/notifications" element={<Nodifications />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/sign-up" element={<Sign_Up />} />
+          {/* </Route> */}
         </Routes>
       </QueryClientProvider>
     </>

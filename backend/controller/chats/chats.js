@@ -2,6 +2,7 @@ const { clerkClient } = require("@clerk/express");
 const pool = require("../../db");
 const { useAuth } = require("@clerk/express");
 const getSearchResults = async (req, res) => {
+  const senderID = req.auth?.userId;
   try {
     const { searchTerm } = req.params;
     if (!searchTerm) {
@@ -22,12 +23,17 @@ const getSearchResults = async (req, res) => {
     const filteredUsers = users.data.filter((user) => {
       return (user.firstName || "").includes(searchTerm);
     });
-    const formattedUsers = filteredUsers.map((user) => ({
-      id: user.id,
-      UserName: `${user.firstName} ${user.lastName ? user.lastName : ""}`,
-      image: user.imageUrl,
-      requested: result.some((request) => request.receiverID === user.id),
-    }));
+    const formattedUsers = filteredUsers
+      .filter((user) => user.id != senderID)
+      .map((user) => {
+        const request = result.find((req) => req.receiverID === user.id);
+        return {
+          id: user.id,
+          UserName: `${user.firstName} ${user.lastName ? user.lastName : ""}`,
+          image: user.imageUrl,
+          requestStatus: request ? request.requestStatus : "unknown",
+        };
+      });
     console.log(formattedUsers, "formattedUsers");
     return res.status(200).json({ data: formattedUsers });
   } catch (error) {
@@ -172,4 +178,5 @@ const getReqAccepted = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 module.exports = { getSearchResults, sendRequest, getReqAccepted };

@@ -7,15 +7,15 @@ import ProfileUpload from "@/helper/ProfileImg";
 import { IKImage } from "imagekitio-react";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { useLocation } from "react-router";
 import { useSelector } from "react-redux";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 function Chat() {
   const { userId } = useAuth();
   console.log(userId);
   const location = useLocation();
-  const reciverID = location.pathname.split("/")[3];
+  const reciverID = location.pathname.split("/")[4];
   console.log(reciverID);
 
   const [messages, setMessages] = useState([]);
@@ -24,14 +24,19 @@ function Chat() {
   const fileInputRef = useRef(null);
   const [filePath, setFile] = useState(null);
   // const { toast } = useToast();
-  const { chatuserlist } = useSelector((state) => state.chatlist);
-  console.log(chatuserlist, "chatuserlist");
+  const { chatuserlist, conversationLoad } = useSelector(
+    (state) => state.chatlist
+  );
+  //console.log(chatuserlist, "chatuserlist");
+  console.log(inputValue, "inputValue");
 
   const handleFileClick = () => {
     fileInputRef.current.click();
   };
 
   const handleUpload = async (file) => {
+    console.log(location.pathname.split("/"));
+
     const formData = new FormData();
     formData.append("file", file);
     setLoading(true);
@@ -54,56 +59,54 @@ function Chat() {
           : `/${filePath}`;
         setFile(normalizedPath);
         toast("Image uploaded successfully");
-        // console.log("Normalized File Path:", normalizedPath);
       }
     } catch (error) {
       toast("Error uploading file");
       console.error("Error uploading file:", error);
     }
+    console.log(location.pathname.split("/"));
     setLoading(false);
   };
-  // console.log(messages);
-
-  const {} = useQuery({
-    queryKey: ["messages"],
-    queryFn: async () => {
-      const response = await axios.get("http://localhost:3006/api/chat", {
-        withCredentials: true,
-      });
-      console.log(response);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      console.log(data);
-    },
-    onError: (error) => {
-      console.error(error);
-    },
-  });
-
-  const {} = useMutation({
+  console.log(userId, reciverID, "userId, reciverID");
+  const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async () => {
-      const response = await axios.post("http://localhost:3006/api/chat", {
-        withCredentials: true,
-      });
-      console.log(response);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      console.log(data);
-    },
-    onError: (error) => {
-      console.log(error);
+      console.log(inputValue, "inputValue");
+      if (inputValue.trim() === "") return;
+      if (chatuserlist[0].requestStatus == "pending") {
+        toast("Please wait for the user to accept your request");
+        return;
+      }
+      try {
+        const response = await axios.post(
+          `http://localhost:3006/api/messages/start-new-conversation`,
+          {
+            message: inputValue,
+            senderId: userId,
+            receiverId: reciverID,
+          },
+          {
+            withCredentials: true,
+          }
+        );
+        console.log(response);
+        toast.success(response.data.message);
+        setInputValue("");
+        setFile(null);
+        return response.data;
+      } catch (error) {
+        console.log(error);
+        toast.error(error.response.data.message);
+      }
     },
   });
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
     if (chatuserlist[0].requestStatus == "pending") {
-      //alert("pending");
       toast("Please wait for the user to accept your request");
       return;
     }
+    sendMessage();
     setMessages((prevMessages) => [
       ...prevMessages,
       {
@@ -113,10 +116,10 @@ function Chat() {
         image: filePath,
       },
     ]);
-    setInputValue("");
+    // setInputValue("");
     setFile(null);
   };
-
+  console.log("Chat mounted");
   return (
     <div className="flex flex-col h-[100%] relative">
       <div className="absolute inset-0 ">
@@ -128,7 +131,11 @@ function Chat() {
       </div>
       <div className="relative flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto p-4 pb-6">
-          {messages.length !== 0 ? (
+          {conversationLoad ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="animate-spin" />
+            </div>
+          ) : messages.length !== 0 ? (
             messages.map((message) => (
               <div key={message.id} className="flex flex-col mb-4">
                 {message.image && (
@@ -180,24 +187,27 @@ function Chat() {
                 path={filePath}
                 transformation={[{ height: 100, width: 100 }]}
                 alt="Profile Preview"
-              />{" "}
+              />
             </>
           )}
           <div className="relative rounded-lg flex items-center">
             <Input
               placeholder="Type a message..."
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                e.preventDefault();
+                setInputValue(e.target.value);
+              }}
               className="rounded-full h-12 pl-14 pr-14 bg-white/80 backdrop-blur-sm focus:ring-2  focus:ring-blue-500 border-none"
             />
 
-            {/* Hidden file input */}
             <input
               type="file"
               ref={fileInputRef}
               className="hidden"
               accept="image/*,.pdf,.doc,.docx"
               onChange={(e) => {
+                e.preventDefault();
                 if (e.target.files[0]) {
                   handleUpload(e.target.files[0]);
                 }
@@ -216,9 +226,10 @@ function Chat() {
             </Button>
 
             <Button
-              className="absolute right-2 p-2 bg-blue-600 hover:bg-blue-700 transition-colors rounded-full"
+              className="absolute right-2 p-2 bg-blue-600 hover:bg-blue-700 transition-colors rounded-full "
               size="icon"
               onClick={handleSend}
+              disabled={inputValue.trim() === "" || conversationLoad}
             >
               <Send className="h-5 w-5 text-white" />
             </Button>

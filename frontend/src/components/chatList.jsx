@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
@@ -8,15 +8,21 @@ import { useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
-import { setChatList } from "@/store/chatlist";
+import { setChatList, setConversationLoad } from "@/store/chatlist";
 function ChatList({ selectedChat, setSelectedChat }) {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
   const { userId } = useAuth();
   console.log(userId, "userId");
-  const { chatuserlist } = useSelector((state) => state.chatlist);
+  const { chatuserlist, conversationLoad } = useSelector(
+    (state) => state.chatlist
+  );
   console.log(chatuserlist, "chatuserlist");
+
+  const location = useLocation();
+  const receiverID = location.pathname.split("/")[4];
   const dispatch = useDispatch();
+
   const {
     data: chatList,
     isLoading,
@@ -32,10 +38,10 @@ function ChatList({ selectedChat, setSelectedChat }) {
           ? `http://localhost:3006/api/users/fetchUsers/${search}`
           : `http://localhost:3006/api/users/fetchRequestedUsers`;
         //  console.log(endpoint, "endpoint");
-        console.log(chatList, "chatList");
+        // console.log(chatList, "chatList");
 
         const response = await axios.get(endpoint, { withCredentials: true });
-        console.log(response);
+        // console.log(response);
         return response.data;
       } catch (error) {
         console.log(error);
@@ -62,7 +68,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
           withCredentials: true,
         }
       );
-      console.log(response);
+      //console.log(response);
       toast.success(response.data.message);
       return response.data;
     } catch (error) {
@@ -70,7 +76,43 @@ function ChatList({ selectedChat, setSelectedChat }) {
       toast.error(error.response.data.message);
     }
   };
-  console.log(chatList, "chatList");
+
+  const { data: conversation, isLoading: conversationLoading } = useQuery({
+    queryKey: ["conversation", receiverID],
+    queryFn: async () => {
+      try {
+        //console.log(receiverID, "receiverID");
+        //console.log(userId, "userId");
+
+        const response = await axios.post(
+          `http://localhost:3006/api/messages/check-conversation`,
+          {
+            senderId: userId,
+            receiverId: receiverID || receiverID,
+          },
+          {
+            withCredentials: true,
+          }
+        );
+        console.log(response);
+        return response.data;
+      } catch (error) {
+        console.log(error);
+        throw error;
+      }
+    },
+    retry: false,
+    staleTime: 0,
+  });
+  dispatch(setConversationLoad(conversationLoading));
+  console.log(conversation?.data);
+  const handleCheckConversation = async (receiverID) => {
+    //   console.log(receiverID, "receiverID");
+    //  console.log(userId, "userId");
+    queryClient.invalidateQueries({ queryKey: ["conversation"] });
+    refetch();
+  };
+  //console.log(chatList, "chatList");
   useEffect(() => {
     if (chatList && chatList.data) {
       const filteredAndMapped = chatList.data
@@ -129,7 +171,8 @@ function ChatList({ selectedChat, setSelectedChat }) {
                 <Button
                   onClick={(e) => {
                     setSelectedChat(chat.UserName);
-                    navigate(`chat/${chat.UserName}`);
+                    navigate(`chat/${chat.UserName}/${chat.id}`);
+                    handleCheckConversation({ receiverID: chat.id });
                     e.stopPropagation();
                   }}
                   className="cursor-pointer"
