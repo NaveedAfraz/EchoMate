@@ -99,3 +99,43 @@ export const statistics = [
     label: "Countries",
   },
 ];
+
+export const aboutFeatures = [
+  {
+    iconName: "MessageCircle",
+    name: "Real-time Chat",
+    description: "Instant messaging with real-time updates",
+  },
+  {
+    iconName: "Image",
+    name: "Media Sharing",
+    description: "Share images and files seamlessly",
+  },
+  {
+    iconName: "Users",
+    name: "Friend System",
+    description: "Connect with friends through requests",
+  },
+  {
+    iconName: "Bell",
+    name: "Notifications",
+    description: "Stay updated with instant notifications",
+  },
+  {
+    iconName: "Shield",
+    name: "Secure",
+    description: "End-to-end encrypted messages",
+  },
+  {
+    iconName: "Zap",
+    name: "Fast",
+    description: "Optimized for quick performance",
+  },
+];
+
+export const aboutStats = [
+  { number: "2K+", label: "Users" },
+  { number: "100K+", label: "Messages" },
+  { number: "99.9%", label: "Uptime" },
+  { number: "24/7", label: "Support" },
+];
