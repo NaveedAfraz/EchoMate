@@ -9,7 +9,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { useLocation } from "react-router";
 import { useSelector } from "react-redux";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 function Chat() {
   const { userId } = useAuth();
@@ -24,7 +24,7 @@ function Chat() {
   const fileInputRef = useRef(null);
   const [filePath, setFile] = useState(null);
   // const { toast } = useToast();
-  const { chatuserlist, conversationLoad } = useSelector(
+  const { chatuserlist, conversationLoad, conversationID } = useSelector(
     (state) => state.chatlist
   );
   //console.log(chatuserlist, "chatuserlist");
@@ -76,6 +76,8 @@ function Chat() {
         toast("Please wait for the user to accept your request");
         return;
       }
+      console.log(conversationID, "conversationID");
+
       try {
         const response = await axios.post(
           `http://localhost:3006/api/messages/start-new-conversation`,
@@ -83,6 +85,7 @@ function Chat() {
             message: inputValue,
             senderId: userId,
             receiverId: reciverID,
+            conversationID: conversationID,
           },
           {
             withCredentials: true,
@@ -100,6 +103,31 @@ function Chat() {
     },
   });
 
+  const {
+    data: Messages,
+    error,
+    isLoading,
+  } = useQuery({
+    queryKey: ["sendMessageData"],
+    queryFn: async () => {
+      try {
+        const reponse = await axios.get(
+          `http://localhost:3006/api/messages/get-messages/${conversationID}`,
+          {
+            withCredentials: true,
+          }
+        );
+        console.log(reponse.data[0].messages, "dataaaaaa");
+
+        return reponse.data;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    enabled: !!conversationID,
+  });
+  console.log(Messages, "Messages");
+
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
     if (chatuserlist[0].requestStatus == "pending") {
@@ -107,15 +135,15 @@ function Chat() {
       return;
     }
     sendMessage();
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        id: prevMessages.length + 1,
-        content: inputValue,
-        sender: "user",
-        image: filePath,
-      },
-    ]);
+    // setMessages((prevMessages) => [
+    //   ...prevMessages,
+    //   {
+    //     id: prevMessages.length + 1,
+    //     content: inputValue,
+    //     sender: "user",
+    //     image: filePath,
+    //   },
+    // ]);
     // setInputValue("");
     setFile(null);
   };
@@ -131,36 +159,42 @@ function Chat() {
       </div>
       <div className="relative flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto p-4 pb-6">
-          {conversationLoad ? (
+          {conversationLoad || isLoading ? (
             <div className="flex justify-center items-center h-full">
               <Loader2 className="animate-spin" />
             </div>
-          ) : messages.length !== 0 ? (
-            messages.map((message) => (
-              <div key={message.id} className="flex flex-col mb-4">
-                {message.image && (
-                  <div className="flex justify-end p-2">
-                    <div className="w-50 bg-amber-600 p-2 rounded-lg">
-                      <IKImage
-                        urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                        path={message.image}
-                        transformation={[{ height: 200, width: 200 }]}
-                        alt="IMage Preview"
-                      />
-                    </div>
+          ) : Messages && Messages.length !== 0 ? (
+            Messages?.map(
+              (message) => (
+                console.log(message, "dataaaaaa"),
+                (
+                  <div key={message.id} className="flex flex-col mb-4">
+                    {message.image && (
+                      <div className="flex justify-end p-2">
+                        <div className="w-50 bg-amber-600 p-2 rounded-lg">
+                          <IKImage
+                            urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                            path={message.image}
+                            transformation={[{ height: 200, width: 200 }]}
+                            alt="IMage Preview"
+                          />
+                        </div>
+                        <p>{message}</p>
+                      </div>
+                    )}
+                    <p
+                      className={`${
+                        message.senderId === userId
+                          ? "bg-blue-600 self-end text-white"
+                          : " bg-amber-50 self-start"
+                      } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                    >
+                      {message.messages}
+                    </p>
                   </div>
-                )}
-                <p
-                  className={`${
-                    message.sender === "user"
-                      ? "bg-blue-600 self-end text-white"
-                      : " bg-amber-50 self-start"
-                  } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
-                >
-                  {message.content}
-                </p>
-              </div>
-            ))
+                )
+              )
+            )
           ) : (
             <div className="flex  justify-center h-full">
               <p className="text-lg text-gray-600">

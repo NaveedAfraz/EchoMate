@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   chatuserlist: [],
   conversationLoad: false,
+  conversationID: null,
 };
 
 const chatlistSlice = createSlice({
@@ -15,8 +16,14 @@ const chatlistSlice = createSlice({
     setConversationLoad(state, action) {
       state.conversationLoad = action.payload;
     },
+    setConversationID(state, action) {
+      // console.log(action.payload.conversationID);
+
+      state.conversationID = action.payload.conversationID;
+    },
   },
 });
 
-export const { setChatList, setConversationLoad } = chatlistSlice.actions;
+export const { setChatList, setConversationLoad, setConversationID } =
+  chatlistSlice.actions;
 export default chatlistSlice.reducer;

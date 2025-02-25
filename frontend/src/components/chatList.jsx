@@ -8,16 +8,20 @@ import { useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
-import { setChatList, setConversationLoad } from "@/store/chatlist";
+import {
+  setChatList,
+  setConversationLoad,
+  setConversationID,
+} from "@/store/chatlist";
 function ChatList({ selectedChat, setSelectedChat }) {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
   const { userId } = useAuth();
-  console.log(userId, "userId");
+  //console.log(userId, "userId");
   const { chatuserlist, conversationLoad } = useSelector(
     (state) => state.chatlist
   );
-  console.log(chatuserlist, "chatuserlist");
+  // console.log(chatuserlist, "chatuserlist");
 
   const location = useLocation();
   const receiverID = location.pathname.split("/")[4];
@@ -33,7 +37,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
     queryKey: ["chats", search],
     queryFn: async () => {
       try {
-        console.log(userId, "userId");
+        //console.log(userId, "userId");
         const endpoint = search
           ? `http://localhost:3006/api/users/fetchUsers/${search}`
           : `http://localhost:3006/api/users/fetchRequestedUsers`;
@@ -82,7 +86,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
     queryFn: async () => {
       try {
         //console.log(receiverID, "receiverID");
-        //console.log(userId, "userId");
+        console.log(userId, "userId");
 
         const response = await axios.post(
           `http://localhost:3006/api/messages/check-conversation`,
@@ -95,12 +99,14 @@ function ChatList({ selectedChat, setSelectedChat }) {
           }
         );
         console.log(response);
+        dispatch(setConversationID({ conversationID: response.data }));
         return response.data;
       } catch (error) {
         console.log(error);
         throw error;
       }
     },
+    enabled: !!userId && !!receiverID,
     retry: false,
     staleTime: 0,
   });
