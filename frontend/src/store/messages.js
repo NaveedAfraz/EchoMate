@@ -22,12 +22,12 @@ const messagesSlice = createSlice({
       state.error = action.payload;
     },
     setOnlineUsers(state, action) {
-      console.log(action.payload, "action.payload");
-
-      state.onlineUsers = [...state.onlineUsers, ...action.payload];
-      console.log(state.onlineUsers, "state.onlineUsers");
+      // Clear existing users and set new unique users
+      state.onlineUsers = action.payload.filter(
+        (user, index, self) => self.indexOf(user) === index
+      );
     },
-  },
+  }, 
 });
 
 export const { setMessage, setLoading, setError, setOnlineUsers } =

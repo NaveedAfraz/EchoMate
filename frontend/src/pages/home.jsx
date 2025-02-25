@@ -28,7 +28,7 @@ function Home() {
           size="lg"
           className="hover:bg-gray-700 my-2 hover:text-white transition-colors duration-200"
         >
-          <Link to="/chat">Start Chat</Link>
+          <Link to="/dashboard">Start Chat</Link>
         </Button>
       </div>
 

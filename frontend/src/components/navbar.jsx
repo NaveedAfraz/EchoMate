@@ -36,15 +36,12 @@ function NavBar() {
                 asChild
                 className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
               >
-                <Link to="/about">About</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                asChild
-                className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
-              >
-                <Link to="/contact">Contact</Link>
+                <Link
+                  to="/about"
+                  className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
+                >
+                  About
+                </Link>
               </Button>
               <Button
                 variant="ghost"

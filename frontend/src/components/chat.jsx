@@ -14,13 +14,15 @@ import axios from "axios";
 import socket from "../../helper/socket";
 import { setMessage } from "@/store/messages";
 import { useDispatch } from "react-redux";
-function Chat() {
+import { Skeleton } from "@/components/ui/skeleton";
+function Chat({}) {
   const dispatch = useDispatch();
+  const [username, setUsername] = useState("");
   const { userId } = useAuth();
   console.log(userId);
   const location = useLocation();
   const reciverID = location.pathname.split("/")[4];
-  console.log(reciverID);
+  // console.log(reciverID);
 
   const [inputValue, setInputValue] = useState("");
   const fileInputRef = useRef(null);
@@ -31,8 +33,23 @@ function Chat() {
   const [loading, setLoading] = useState(false);
   const { messages } = useSelector((state) => state.messages);
   //console.log(chatuserlist, "chatuserlist");
-  console.log(inputValue, "inputValue");
-  console.log(messages, "messages");
+  // console.log(inputValue, "inputValue");
+  // console.log(messages, "messages");
+
+  const getUsername = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3006/api/users/getUser/${reciverID}`,
+        {
+          withCredentials: true,
+        }
+      );
+      // console.log(response.data, "response.data");
+      setUsername(response.data.username);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const handleFileClick = () => {
     fileInputRef.current.click();
@@ -73,7 +90,8 @@ function Chat() {
     console.log(location.pathname.split("/"));
     setLoading(false);
   };
-  console.log(userId, reciverID, "userId, reciverID");
+  console.log(conversationID, "conversationID");
+  // console.log(userId, reciverID, "userId, reciverID");
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async () => {
       console.log(inputValue, "inputValue");
@@ -123,8 +141,10 @@ function Chat() {
     error,
     isLoading,
   } = useQuery({
-    queryKey: ["sendMessageData", reciverID],
+    queryKey: ["sendMessageData", reciverID, conversationID],
     queryFn: async () => {
+      console.log(conversationID, "conversationID");
+      getUsername();
       try {
         const reponse = await axios.get(
           `http://localhost:3006/api/messages/get-messages/${conversationID}`,
@@ -171,81 +191,116 @@ function Chat() {
         />
       </div>
       <div className="relative flex-1 overflow-hidden">
+        <div className="flex justify-between  backdrop-blur-sm items-center p-4">
+          <h1 className="text-2xl font-bold">Chat</h1>
+          <h1 className="text-2xl font-bold">
+            {username.userName ? (
+              username.userName
+            ) : (
+              <Skeleton className="w-24 h-4" />
+            )}
+          </h1>
+        </div>
         <div className="h-full overflow-y-auto p-4 pb-6">
-          {conversationLoad || isLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <Loader2 className="animate-spin" />
-            </div>
-          ) : messages && messages.length !== 0 ? (
-            messages?.map((message) => (
-              // console.log(message, "dataaaaaa"),
-              <div key={message.id} className="flex flex-col mb-4">
-                {/* {console.log(message.messageImage)} */}
-                {message.messageImage && (
+          <>
+            {conversationLoad || isLoading ? (
+              <div className="flex flex-col gap-4 p-4">
+                {/* Generate 6 skeleton messages alternating left/right */}
+                {[...Array(6)].map((_, index) => (
                   <div
+                    key={index}
                     className={`flex ${
-                      message.senderId === userId
-                        ? "justify-end"
-                        : "justify-start"
-                    } p-2`}
+                      index % 2 === 0 ? "justify-start" : "justify-end"
+                    }`}
                   >
-                    <div
-                      className={`w-50 p-2 rounded-lg ${
-                        message.senderId === userId
-                          ? "bg-blue-600"
-                          : "bg-amber-50"
-                      }`}
-                    >
-                      <IKImage
-                        urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                        path={message.messageImage}
-                        transformation={[
-                          {
-                            height: 200,
-                            width: 200,
-                          },
-                        ]}
-                        loading="lazy"
-                        onError={(err) => {
-                          console.error("Image load error:", err);
-                          // Optionally show a fallback image
-                        }}
-                        onLoad={() => {
-                          console.log(
-                            "Image loaded successfully:",
-                            message.messageImage
-                          );
-                        }}
-                        alt="Message Image"
-                        className="max-w-full h-auto rounded"
-                        // Add error fallback
-                        errorComponent={
-                          <div className="bg-gray-200 p-4 rounded">
-                            Failed to load image
-                          </div>
-                        }
+                    <div className={`flex flex-col gap-2 max-w-[60%]`}>
+                      <Skeleton
+                        className={`h-10 w-40 rounded-2xl ${
+                          index % 2 === 0 ? "bg-amber-50/50" : "bg-blue-600/50"
+                        }`}
+                      />
+                      <Skeleton
+                        className={`h-4 w-20 ${
+                          index % 2 === 0 ? "ml-2" : "ml-auto mr-2"
+                        }`}
                       />
                     </div>
                   </div>
-                )}
-                <p
-                  className={`${
-                    message.senderId === userId
-                      ? "bg-blue-600 self-end text-white"
-                      : " bg-amber-50 self-start"
-                  } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
-                >
-                  {message.messages}
+                ))}
+              </div>
+            ) : (
+              messages.length !== 0 &&
+              messages?.map((message) => (
+                // console.log(message, "dataaaaaa"),
+                <div key={message.id} className="flex flex-col mb-4">
+                  {/* {console.log(message.messageImage)} */}
+                  {message.messageImage && (
+                    <div
+                      className={`flex ${
+                        message.senderId === userId
+                          ? "justify-end"
+                          : "justify-start"
+                      } p-2`}
+                    >
+                      <div
+                        className={`w-50 p-2 rounded-lg ${
+                          message.senderId === userId
+                            ? "bg-blue-600"
+                            : "bg-amber-50"
+                        }`}
+                      >
+                        <IKImage
+                          urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                          path={message.messageImage}
+                          transformation={[
+                            {
+                              height: 200,
+                              width: 200,
+                            },
+                          ]}
+                          loading="lazy"
+                          onError={(err) => {
+                            console.error("Image load error:", err);
+                            // Optionally show a fallback image
+                          }}
+                          onLoad={() => {
+                            console.log(
+                              "Image loaded successfully:",
+                              message.messageImage
+                            );
+                          }}
+                          alt="Message Image"
+                          className="max-w-full h-auto rounded"
+                          // Add error fallback
+                          errorComponent={
+                            <div className="bg-gray-200 p-4 rounded">
+                              Failed to load image
+                            </div>
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <p
+                    className={`${
+                      message.senderId === userId
+                        ? "bg-blue-600 self-end text-white"
+                        : " bg-amber-50 self-start"
+                    } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                  >
+                    {message.messages}
+                  </p>
+                </div>
+              ))
+            )}
+            {isLoading && messages.length === 0 && (
+              <div className="flex  justify-center h-full">
+                <p className="text-lg text-gray-600">
+                  Please send a message to have a conversation
                 </p>
               </div>
-            ))
-          ) : (
-            <div className="flex  justify-center h-full">
-              <p className="text-lg text-gray-600">
-                Please send a message for conversation
-              </p>
-            </div>
-          )}
+            )}
+          </>
         </div>
       </div>
       {/* Input section */}

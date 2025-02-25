@@ -101,9 +101,20 @@ function Nodifications() {
             );
           })
         : isLoading && (
-            <p className="text-2xl font-bold">
-              <Loader className="animate-spin" />
-            </p>
+            <div className="flex flex-col gap-4 p-4 w-full">
+              {[...Array(2)].map((_, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-4 w-full bg-gray-200/80 p-5 rounded-lg relative"
+                >
+                  <Skeleton className="h-10 w-10 rounded-full bg-gray-300" />
+                  <Skeleton className="h-4 w-32 bg-gray-300" />
+                  <div className="absolute right-30">
+                    <Skeleton className="h-4 w-20 bg-gray-300 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
       {notificationData?.data.length == 0 && (
         <p className="text-2xl font-bold">No Notifications Found</p>

@@ -5,7 +5,8 @@ import { Outlet, useParams } from "react-router";
 function DashBoard() {
   const [selectedChat, setSelectedChat] = useState(null);
   const params = useParams();
-  console.log("runninggggggggggggg");
+  console.log(selectedChat, "selectedChat");
+  
   
   return (
     <div className="flex flex-col `">

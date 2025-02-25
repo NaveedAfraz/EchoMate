@@ -21,6 +21,7 @@ import Nodifications from "./pages/nodifications";
 import { setOnlineUsers } from "./store/messages";
 import { useDispatch, useSelector } from "react-redux";
 import socket from "../helper/socket";
+import About from "./pages/about";
 
 function App() {
   const { isSignedIn } = useUser();
@@ -57,6 +58,8 @@ function App() {
 
     // Listen for online users updates
     socket.on("online-users", (users) => {
+      console.log(users, "users");
+
       dispatch(setOnlineUsers(users));
     });
 
@@ -92,6 +95,7 @@ function App() {
           <Route path="/notifications" element={<Nodifications />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<Sign_Up />} />
+          <Route path="/about" element={<About />} />
           {/* </Route> */}
         </Routes>
       </QueryClientProvider>

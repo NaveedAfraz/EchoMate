@@ -13,6 +13,8 @@ import {
   setConversationLoad,
   setConversationID,
 } from "@/store/chatlist";
+import { Skeleton } from "@/components/ui/skeleton";
+
 function ChatList({ selectedChat, setSelectedChat }) {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
@@ -21,9 +23,8 @@ function ChatList({ selectedChat, setSelectedChat }) {
   const { chatuserlist, conversationLoad } = useSelector(
     (state) => state.chatlist
   );
-  // console.log(chatuserlist, "chatuserlist");
+  console.log(chatuserlist, "chatuserlist");
   const { onlineUsers } = useSelector((state) => state.messages);
-  console.log(onlineUsers, "onlineUsers");
   const location = useLocation();
   const receiverID = location.pathname.split("/")[4];
   const dispatch = useDispatch();
@@ -42,7 +43,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
         const endpoint = search
           ? `http://localhost:3006/api/users/fetchUsers/${search}`
           : `http://localhost:3006/api/users/fetchRequestedUsers`;
-        //  console.log(endpoint, "endpoint");
+        // console.log(endpoint, "endpoint");
         // console.log(chatList, "chatList");
 
         const response = await axios.get(endpoint, { withCredentials: true });
@@ -133,6 +134,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
       dispatch(setChatList(filteredAndMapped));
     }
   }, [chatList, dispatch, userId]);
+  console.log(isLoading, "isLoading");
 
   return (
     <div className={`flex flex-col gap-2 p-5 `}>
@@ -148,7 +150,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
         onKeyDown={(e) => setSearch(e.target.value)}
       />
       <div className="flex my-2 items-center flex-col gap-2">
-        {chatuserlist &&
+        {chatuserlist && chatuserlist.length > 0 ? (
           chatuserlist.map((chat) => (
             <>
               <div
@@ -215,9 +217,24 @@ function ChatList({ selectedChat, setSelectedChat }) {
                 )}
               </div>
             </>
-          ))}
+          ))
+        ) : (
+          <div className="text-white">No chats found</div>
+        )}
       </div>
-      {isLoading && <div className="text-white">Loading...</div>}
+      {isLoading && (
+        <div className="h-full flex flex-col gap-4 p-4">
+          {[...Array(5)].map((_, index) => (
+            <div key={index} className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-12 rounded-full bg-gray-200" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-4 w-[250px] bg-gray-200" />
+                <Skeleton className="h-4 w-[200px] bg-gray-200" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
