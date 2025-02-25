@@ -4,8 +4,16 @@ const StartNewConversation = async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
-    const { senderId, receiverId, conversationID, message } = req.body;
+    const { senderId, receiverId, conversationID, message, image } = req.body;
     await connection.beginTransaction();
+    console.log(
+      senderId,
+      receiverId,
+      conversationID,
+      message,
+      image,
+      "senderId, receiverId, conversationID, message, image"
+    );
 
     if (!conversationID || !senderId || !message || !receiverId) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -25,6 +33,7 @@ const StartNewConversation = async (req, res) => {
       conversationId = existingConversation[0].id;
     } else {
       // If no conversation exists, create a new one
+
       const [conversationResult] = await connection.query(
         "INSERT INTO Conversations (title, `group`, createdAt, userID) VALUES (?, ?, NOW(), ?)",
         ["New Conversation", "1", senderId]
@@ -37,10 +46,9 @@ const StartNewConversation = async (req, res) => {
       );
     }
 
-    // Insert the message into the messages table
     const [rows] = await connection.query(
-      "INSERT INTO messages (conversationID, senderID, messages) VALUES (?, ?, ?)",
-      [conversationId, senderId, message]
+      "INSERT INTO messages (conversationID, senderID, messages,messageImage) VALUES (?, ?,?, ?)",
+      [conversationId, senderId, message, image ? image : null]
     );
 
     await connection.commit();
@@ -64,7 +72,7 @@ const CheckConversation = async (req, res) => {
 
   try {
     const { senderId, receiverId } = req.body;
-    console.log(senderId, receiverId, "senderId, receiverId");
+    // console.log(senderId, receiverId, "senderId, receiverId");
 
     const [rows] = await connection.query(
       `SELECT c.id 
@@ -74,7 +82,7 @@ const CheckConversation = async (req, res) => {
        WHERE p1.participantID = ? AND p2.participantID = ?`,
       [senderId, receiverId]
     );
-    console.log(rows, "rows");
+    // console.log(rows, "rows");
     if (rows.length > 0) {
       return res.status(200).json(rows[0].id);
     } else {

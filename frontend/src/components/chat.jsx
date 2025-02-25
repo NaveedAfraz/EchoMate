@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Loader, Loader2, Pin, PinIcon, Search, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/3px-tile.png";
@@ -11,24 +11,28 @@ import { useLocation } from "react-router";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import socket from "../../helper/socket";
+import { setMessage } from "@/store/messages";
+import { useDispatch } from "react-redux";
 function Chat() {
+  const dispatch = useDispatch();
   const { userId } = useAuth();
   console.log(userId);
   const location = useLocation();
   const reciverID = location.pathname.split("/")[4];
   console.log(reciverID);
 
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const fileInputRef = useRef(null);
   const [filePath, setFile] = useState(null);
-  // const { toast } = useToast();
   const { chatuserlist, conversationLoad, conversationID } = useSelector(
     (state) => state.chatlist
   );
+  const [loading, setLoading] = useState(false);
+  const { messages } = useSelector((state) => state.messages);
   //console.log(chatuserlist, "chatuserlist");
   console.log(inputValue, "inputValue");
+  console.log(messages, "messages");
 
   const handleFileClick = () => {
     fileInputRef.current.click();
@@ -40,6 +44,8 @@ function Chat() {
     const formData = new FormData();
     formData.append("file", file);
     setLoading(true);
+    fileInputRef.current.value = null;
+    setFile(null);
     try {
       const response = await fetch("http://localhost:3006/api/imageUpload", {
         method: "POST",
@@ -86,12 +92,21 @@ function Chat() {
             senderId: userId,
             receiverId: reciverID,
             conversationID: conversationID,
+            image: filePath,
           },
           {
             withCredentials: true,
           }
         );
         console.log(response);
+
+        socket.emit("sendMessage", {
+          messages: inputValue,
+          senderId: userId,
+          messageImage: filePath,
+          conversationID: conversationID,
+        });
+
         toast.success(response.data.message);
         setInputValue("");
         setFile(null);
@@ -108,7 +123,7 @@ function Chat() {
     error,
     isLoading,
   } = useQuery({
-    queryKey: ["sendMessageData"],
+    queryKey: ["sendMessageData", reciverID],
     queryFn: async () => {
       try {
         const reponse = await axios.get(
@@ -117,8 +132,8 @@ function Chat() {
             withCredentials: true,
           }
         );
-        console.log(reponse.data[0].messages, "dataaaaaa");
-
+        console.log(reponse.data, "dataaaaaa");
+        dispatch(setMessage(reponse.data));
         return reponse.data;
       } catch (error) {
         console.log(error);
@@ -126,7 +141,6 @@ function Chat() {
     },
     enabled: !!conversationID,
   });
-  console.log(Messages, "Messages");
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
@@ -135,19 +149,18 @@ function Chat() {
       return;
     }
     sendMessage();
-    // setMessages((prevMessages) => [
-    //   ...prevMessages,
-    //   {
-    //     id: prevMessages.length + 1,
-    //     content: inputValue,
-    //     sender: "user",
-    //     image: filePath,
-    //   },
-    // ]);
-    // setInputValue("");
-    setFile(null);
   };
-  console.log("Chat mounted");
+
+  useEffect(() => {
+    socket.on("message", (message) => {
+      dispatch(setMessage([...messages, message]));
+    });
+
+    return () => {
+      socket.off("message");
+    };
+  }, [dispatch, messages]);
+
   return (
     <div className="flex flex-col h-[100%] relative">
       <div className="absolute inset-0 ">
@@ -163,38 +176,69 @@ function Chat() {
             <div className="flex justify-center items-center h-full">
               <Loader2 className="animate-spin" />
             </div>
-          ) : Messages && Messages.length !== 0 ? (
-            Messages?.map(
-              (message) => (
-                console.log(message, "dataaaaaa"),
-                (
-                  <div key={message.id} className="flex flex-col mb-4">
-                    {message.image && (
-                      <div className="flex justify-end p-2">
-                        <div className="w-50 bg-amber-600 p-2 rounded-lg">
-                          <IKImage
-                            urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                            path={message.image}
-                            transformation={[{ height: 200, width: 200 }]}
-                            alt="IMage Preview"
-                          />
-                        </div>
-                        <p>{message}</p>
-                      </div>
-                    )}
-                    <p
-                      className={`${
+          ) : messages && messages.length !== 0 ? (
+            messages?.map((message) => (
+              // console.log(message, "dataaaaaa"),
+              <div key={message.id} className="flex flex-col mb-4">
+                {/* {console.log(message.messageImage)} */}
+                {message.messageImage && (
+                  <div
+                    className={`flex ${
+                      message.senderId === userId
+                        ? "justify-end"
+                        : "justify-start"
+                    } p-2`}
+                  >
+                    <div
+                      className={`w-50 p-2 rounded-lg ${
                         message.senderId === userId
-                          ? "bg-blue-600 self-end text-white"
-                          : " bg-amber-50 self-start"
-                      } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                          ? "bg-blue-600"
+                          : "bg-amber-50"
+                      }`}
                     >
-                      {message.messages}
-                    </p>
+                      <IKImage
+                        urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                        path={message.messageImage}
+                        transformation={[
+                          {
+                            height: 200,
+                            width: 200,
+                          },
+                        ]}
+                        loading="lazy"
+                        onError={(err) => {
+                          console.error("Image load error:", err);
+                          // Optionally show a fallback image
+                        }}
+                        onLoad={() => {
+                          console.log(
+                            "Image loaded successfully:",
+                            message.messageImage
+                          );
+                        }}
+                        alt="Message Image"
+                        className="max-w-full h-auto rounded"
+                        // Add error fallback
+                        errorComponent={
+                          <div className="bg-gray-200 p-4 rounded">
+                            Failed to load image
+                          </div>
+                        }
+                      />
+                    </div>
                   </div>
-                )
-              )
-            )
+                )}
+                <p
+                  className={`${
+                    message.senderId === userId
+                      ? "bg-blue-600 self-end text-white"
+                      : " bg-amber-50 self-start"
+                  } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                >
+                  {message.messages}
+                </p>
+              </div>
+            ))
           ) : (
             <div className="flex  justify-center h-full">
               <p className="text-lg text-gray-600">
@@ -215,7 +259,6 @@ function Chat() {
           )}
           {filePath && (
             <>
-              {console.log(filePath)}
               <IKImage
                 urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
                 path={filePath}

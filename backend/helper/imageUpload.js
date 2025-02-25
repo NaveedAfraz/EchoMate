@@ -17,10 +17,15 @@ router.post("/", upload.single("file"), async (req, res) => {
     const uploadResponse = await imagekit.upload({
       file: fileBuffer,
       fileName: req.file.originalname,
-      folder: "/profile_pictures",
+      folder: "/uploads",
+      useUniqueFileName: true,
     });
 
-    res.json({ success: true, imageUrl: uploadResponse.url });
+    res.json({
+      success: true,
+      imageUrl: uploadResponse.url,
+      filePath: uploadResponse.filePath,
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

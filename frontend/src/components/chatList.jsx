@@ -22,7 +22,8 @@ function ChatList({ selectedChat, setSelectedChat }) {
     (state) => state.chatlist
   );
   // console.log(chatuserlist, "chatuserlist");
-
+  const { onlineUsers } = useSelector((state) => state.messages);
+  console.log(onlineUsers, "onlineUsers");
   const location = useLocation();
   const receiverID = location.pathname.split("/")[4];
   const dispatch = useDispatch();
@@ -149,54 +150,71 @@ function ChatList({ selectedChat, setSelectedChat }) {
       <div className="flex my-2 items-center flex-col gap-2">
         {chatuserlist &&
           chatuserlist.map((chat) => (
-            <div
-              key={chat.id}
-              className="flex items-center bg-black text-white rounded-xl relative p-2 gap-4 w-full"
-            >
-              <div className="flex items-center gap-4  w-[65%] rounded-xl">
-                <div className="w-10 h-10 rounded-full">
-                  <img
-                    src={chat.image}
-                    alt="profile"
-                    className="w-full h-full object-cover rounded-full"
-                  />
+            <>
+              <div
+                key={chat.id}
+                className="flex items-center bg-black text-white rounded-xl relative p-2 gap-4 w-full"
+              >
+                <div className="flex items-center gap-4  w-[65%] rounded-xl">
+                  <div className="w-10 h-10 relative rounded-full">
+                    <ul>
+                      {onlineUsers.map((user) => (
+                        <>
+                          {/* {console.log(user, "user")}
+                          {console.log(chat.id, "chat.id")} */}
+                          {user === chat.id && (
+                            <li key={user}>
+                              <span className="absolute text-3xl right-[-3px] bottom-[-8px] text-green-500">
+                                ●
+                              </span>
+                            </li>
+                          )}
+                        </>
+                      ))}
+                    </ul>
+                    <img
+                      src={chat.image}
+                      alt="profile"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="font-bold">{chat.UserName}</p>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <p className="font-bold">{chat.UserName}</p>
-                </div>
+                {chat.requestStatus == "pending" ||
+                chat.requestStatus == undefined ? (
+                  <Button
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-white cursor-not-allowed"
+                  >
+                    Request Sent
+                  </Button>
+                ) : chat.requestStatus == "accept" ? (
+                  <Button
+                    onClick={(e) => {
+                      setSelectedChat(chat.UserName);
+                      navigate(`chat/${chat.UserName}/${chat.id}`);
+                      handleCheckConversation({ receiverID: chat.id });
+                      e.stopPropagation();
+                    }}
+                    className="cursor-pointer"
+                  >
+                    Chat
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSendRequest(chat.id);
+                    }}
+                    className={`text-white cursor-pointer`}
+                  >
+                    Send Request
+                  </Button>
+                )}
               </div>
-              {chat.requestStatus == "pending" ||
-              chat.requestStatus == undefined ? (
-                <Button
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-white cursor-not-allowed"
-                >
-                  Request Sent
-                </Button>
-              ) : chat.requestStatus == "accept" ? (
-                <Button
-                  onClick={(e) => {
-                    setSelectedChat(chat.UserName);
-                    navigate(`chat/${chat.UserName}/${chat.id}`);
-                    handleCheckConversation({ receiverID: chat.id });
-                    e.stopPropagation();
-                  }}
-                  className="cursor-pointer"
-                >
-                  Chat
-                </Button>
-              ) : (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSendRequest(chat.id);
-                  }}
-                  className={`text-white cursor-pointer`}
-                >
-                  Send Request
-                </Button>
-              )}
-            </div>
+            </>
           ))}
       </div>
       {isLoading && <div className="text-white">Loading...</div>}

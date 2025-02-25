@@ -16,7 +16,7 @@ function NavBar() {
         <div className="flex justify-between h-16 items-center">
           <div className="flex-shrink-0">
             <Link to="/" className="font-bold text-xl">
-              EchoChat
+              EchoMate
             </Link>
           </div>
 

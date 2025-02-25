@@ -18,15 +18,14 @@ function Home() {
   return (
     <>
       <div className="flex flex-col items-center justify-center mt-24 gap-4 h-80">
-        <h1 className="text-4xl font-bold">Welcome to EchoChat</h1>
+        <h1 className="text-4xl font-bold">Welcome to EchoMate</h1>
         <p className="text-gray-500 my-2">
-          EchoChat is a chat application that allows you to chat with your
+          EchoMate is a chat application that allows you to chat with your
           friends and family.
         </p>
         <Button
-          variant="ghost"
+          variant="default"
           size="lg"
-          asChild
           className="hover:bg-gray-700 my-2 hover:text-white transition-colors duration-200"
         >
           <Link to="/chat">Start Chat</Link>
@@ -73,7 +72,7 @@ function Home() {
       <div className="bg-gray-50 py-16 mt-20">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Why Choose EchoChat?
+            Why Choose EchoMate?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((feature) => (
@@ -112,7 +111,7 @@ function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-lg shadow">
               <p className="text-gray-600 italic">
-                "EchoChat has transformed how our team communicates. It's simple
+                "EchoMate has transformed how our team communicates. It's simple
                 yet powerful!"
               </p>
               <div className="mt-4">
