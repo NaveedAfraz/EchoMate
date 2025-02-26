@@ -15,7 +15,7 @@ const StartNewConversation = async (req, res) => {
       "senderId, receiverId, conversationID, message, image"
     );
 
-    if (!conversationID || !senderId || !message || !receiverId) {
+    if (!senderId || !message || !receiverId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -32,8 +32,6 @@ const StartNewConversation = async (req, res) => {
     if (existingConversation.length > 0) {
       conversationId = existingConversation[0].id;
     } else {
-      // If no conversation exists, create a new one
-
       const [conversationResult] = await connection.query(
         "INSERT INTO Conversations (title, `group`, createdAt, userID) VALUES (?, ?, NOW(), ?)",
         ["New Conversation", "1", senderId]
@@ -143,11 +141,11 @@ const GetMessages = async (req, res) => {
       "SELECT * FROM messages WHERE conversationID = ?",
       [conversationId]
     );
-    console.log(rows, "rows");
+  // console.log(rows, "rows");
     if (rows.length === 0) {
-      console.log("No messages found");
+      console.log("No messages found"); 
       return res.status(404).json({ message: "No messages found" });
-    }
+    }  
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);

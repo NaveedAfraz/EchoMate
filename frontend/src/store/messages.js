@@ -22,7 +22,6 @@ const messagesSlice = createSlice({
       state.error = action.payload;
     },
     setOnlineUsers(state, action) {
-      // Clear existing users and set new unique users
       state.onlineUsers = action.payload.filter(
         (user, index, self) => self.indexOf(user) === index
       );

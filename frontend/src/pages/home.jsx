@@ -183,13 +183,13 @@ function Home() {
             </div>
           </div>
 
-          {/* Copyright */}
+           
           <div className="mt-4 text-center text-sm">
             © {new Date().getFullYear()} EchoMate. All rights reserved.
           </div>
         </div>
       </footer>
-      {/* Add custom animation styles */}
+    
       <style jsx>{`
         @keyframes fadeIn {
           from {

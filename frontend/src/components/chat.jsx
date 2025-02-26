@@ -15,11 +15,45 @@ import socket from "../../helper/socket";
 import { setMessage } from "@/store/messages";
 import { useDispatch } from "react-redux";
 import { Skeleton } from "@/components/ui/skeleton";
+
+function formatLastSeen(dateString) {
+  if (!dateString) return "";
+
+  const givenDate = new Date(dateString);
+  const currentDate = new Date();
+  const diffInMs = currentDate - givenDate;
+
+  // Convert to different time units
+  const minutes = Math.floor(diffInMs / (1000 * 60));
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  // Show appropriate time format
+  if (minutes < 1) {
+    return "Just now";
+  } else if (minutes < 60) {
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  } else if (hours < 24) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  } else if (days < 7) {
+    return `${days} ${days === 1 ? "day" : "days"} ago`;
+  } else {
+    // For older dates, show the full date and time
+    return givenDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+}
+
 function Chat({}) {
   const dispatch = useDispatch();
   const [username, setUsername] = useState("");
   const { userId } = useAuth();
-  console.log(userId);
+  //console.log(userId);
   const location = useLocation();
   const reciverID = location.pathname.split("/")[4];
   // console.log(reciverID);
@@ -30,6 +64,8 @@ function Chat({}) {
   const { chatuserlist, conversationLoad, conversationID } = useSelector(
     (state) => state.chatlist
   );
+  const { onlineUsers } = useSelector((state) => state.messages);
+  console.log(onlineUsers, "onlineUsers");
   const [loading, setLoading] = useState(false);
   const { messages } = useSelector((state) => state.messages);
   //console.log(chatuserlist, "chatuserlist");
@@ -50,6 +86,29 @@ function Chat({}) {
       console.log(error);
     }
   };
+
+  const { data: lastSeen } = useQuery({
+    queryKey: ["lastSeen", reciverID],
+    queryFn: async () => {
+      try {
+        // console.log(userId, "userId");
+        console.log(reciverID, "reciverID");
+
+        const response = await axios.get(
+          `http://localhost:3006/api/users/last-seen/${reciverID}`,
+          {
+            withCredentials: true,
+          }
+        );
+        console.log(response.data, "response.data");
+        return response.data;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    enabled: !!userId,
+  });
+  console.log(lastSeen, "lastSeen");
 
   const handleFileClick = () => {
     fileInputRef.current.click();
@@ -195,7 +254,14 @@ function Chat({}) {
           <h1 className="text-2xl font-bold">Chat</h1>
           <h1 className="text-2xl font-bold">
             {username.userName ? (
-              username.userName
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-gray-600">{username.userName}</span>
+                <span className="text-gray-400 text-sm">
+                  {lastSeen?.lastSeen && !onlineUsers.includes(reciverID)
+                    ? `Last Seen : ${formatLastSeen(lastSeen.lastSeen)}`
+                    : "Online"}
+                </span>
+              </div>
             ) : (
               <Skeleton className="w-24 h-4" />
             )}
