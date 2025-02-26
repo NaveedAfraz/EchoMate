@@ -45,8 +45,8 @@ const StartNewConversation = async (req, res) => {
     }
 
     const [rows] = await connection.query(
-      "INSERT INTO messages (conversationID, senderID, messages,messageImage) VALUES (?, ?,?, ?)",
-      [conversationId, senderId, message, image ? image : null]
+      "INSERT INTO messages (conversationID, senderID,receiverID,messages,messageImage) VALUES (?, ?,?, ?,?)",
+      [conversationId, senderId, receiverId, message, image ? image : null]
     );
 
     await connection.commit();
@@ -130,7 +130,7 @@ const GetMessages = async (req, res) => {
 
   try {
     const { conversationId } = req.params;
-    console.log(conversationId, "conversationId");
+  //  console.log(conversationId, "conversationId");
 
     if (!conversationId) {
       console.log("Missing conversationId");
@@ -141,11 +141,11 @@ const GetMessages = async (req, res) => {
       "SELECT * FROM messages WHERE conversationID = ?",
       [conversationId]
     );
-  // console.log(rows, "rows");
+    // console.log(rows, "rows");
     if (rows.length === 0) {
-      console.log("No messages found"); 
+      console.log("No messages found");
       return res.status(404).json({ message: "No messages found" });
-    }  
+    }
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);

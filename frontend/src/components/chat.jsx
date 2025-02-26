@@ -1,6 +1,15 @@
 import { Input } from "@/components/ui/input";
 import React, { useEffect, useRef, useState } from "react";
-import { Loader, Loader2, Pin, PinIcon, Search, Send } from "lucide-react";
+import {
+  Check,
+  CheckCheck,
+  Loader,
+  Loader2,
+  Pin,
+  PinIcon,
+  Search,
+  Send,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/3px-tile.png";
 import ProfileUpload from "@/helper/ProfileImg";
@@ -180,6 +189,8 @@ function Chat({}) {
         socket.emit("sendMessage", {
           messages: inputValue,
           senderId: userId,
+          receiverId: reciverID,
+          ReadReceipts: "sent",
           messageImage: filePath,
           conversationID: conversationID,
         });
@@ -195,6 +206,14 @@ function Chat({}) {
     },
   });
 
+  // useEffect(() => {
+  //   socket.emit("readMessage", {
+  //     messageData: {
+  //       userId: userId,
+  //     },
+  //   });
+
+  // }, [messages]);
   const {
     data: Messages,
     error,
@@ -223,22 +242,64 @@ function Chat({}) {
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
+
     if (chatuserlist[0].requestStatus == "pending") {
       toast("Please wait for the user to accept your request");
       return;
     }
+    socket.emit("readMessage", {
+      messageData: {
+        userId: userId,
+      },
+    });
     sendMessage();
   };
+  // useEffect(() => {
+  //   socket.on("message-read", (data) => {
+  //     console.log("Received read update:", data);
+  //     // Update your local state or Redux store to reflect that messages in the conversation are now "read"
+  //     // Example using local state:
+
+  //     const newmessages = messages.map((prevMessages) =>
+  //       msg.conversationId === data.conversationId
+  //         ? { ...msg, ReadReceipts: data.newStatus }
+  //         : msg
+  //     );
+
+  //     setMessage(newmessages);
+  //     console.log(newmessages, "newmessages");
+  //   });
+
+  //   return () => {
+  //     socket.off("message-read");
+  //   };
+  // }, []);
 
   useEffect(() => {
     socket.on("message", (message) => {
-      dispatch(setMessage([...messages, message]));
-    });
+      // console.log(message.senderId, "message sender");
+      // console.log(message.receiverId, "message receiver");
+      // console.log(reciverID, "current chat partner id");
+      // console.log(userId, "current user id");
+      console.log(message, "message");
 
+      if (
+        (message.senderId === reciverID && message.receiverId === userId) ||
+        (message.senderId === userId && message.receiverId === reciverID)
+      ) {
+        console.log(message, "message");
+        dispatch(setMessage([...messages, message]));
+      }
+    });
+    socket.emit("readMessage", {
+      messageData: {
+        userId: userId,
+      },
+    });
     return () => {
       socket.off("message");
     };
-  }, [dispatch, messages]);
+  }, [userId, reciverID, dispatch, messages]);
 
   return (
     <div className="flex flex-col h-[100%] relative">
@@ -267,11 +328,10 @@ function Chat({}) {
             )}
           </h1>
         </div>
-        <div className="h-full overflow-y-auto p-4 pb-6">
+        <div className="h-full overflow-y-auto p-4 pb-30">
           <>
             {conversationLoad || isLoading ? (
               <div className="flex flex-col gap-4 p-4">
-                {/* Generate 6 skeleton messages alternating left/right */}
                 {[...Array(6)].map((_, index) => (
                   <div
                     key={index}
@@ -298,7 +358,7 @@ function Chat({}) {
               messages.length !== 0 &&
               messages?.map((message) => (
                 // console.log(message, "dataaaaaa"),
-                <div key={message.id} className="flex flex-col mb-4">
+                <div key={message.id} className=" relative flex flex-col mb-4">
                   {/* {console.log(message.messageImage)} */}
                   {message.messageImage && (
                     <div
@@ -355,6 +415,16 @@ function Chat({}) {
                     } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
                   >
                     {message.messages}
+
+                    {message.senderId === userId && (
+                      <CheckCheck
+                        className={`${
+                          message.ReadReceipts === "read"
+                            ? "text-green-500"
+                            : "text-gray-500"
+                        } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
+                      />
+                    )}
                   </p>
                 </div>
               ))

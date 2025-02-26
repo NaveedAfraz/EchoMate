@@ -51,7 +51,7 @@ const handleRequest = async (req, res) => {
         message: "Request not found",
       });
     }
-    console.log(rows, "rows of request");
+   // console.log(rows, "rows of request");
 
     const [notification] = await pool.query(
       "SELECT notificationid FROM request WHERE requestID = ?",

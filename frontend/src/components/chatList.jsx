@@ -14,6 +14,7 @@ import {
   setConversationID,
 } from "@/store/chatlist";
 import { Skeleton } from "@/components/ui/skeleton";
+import socket from "../../helper/socket";
 
 function ChatList({ selectedChat, setSelectedChat }) {
   const [search, setSearch] = useState("");
@@ -83,7 +84,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
     }
   };
 
-  const { data: conversation, isLoading: conversationLoading } = useQuery({
+  const { data: conversationID, isLoading: conversationLoading } = useQuery({
     queryKey: ["conversation", receiverID],
     queryFn: async () => {
       try {
@@ -113,10 +114,19 @@ function ChatList({ selectedChat, setSelectedChat }) {
     staleTime: 0,
   });
   dispatch(setConversationLoad(conversationLoading));
-  console.log(conversation?.data);
+  console.log(conversationID);
   const handleCheckConversation = async (receiverID) => {
     //   console.log(receiverID, "receiverID");
-    //  console.log(userId, "userId");
+    console.log(userId, "userId");
+
+    if (!conversationID) {
+      console.log("error");
+    }
+    socket.emit("readMessage", {
+      messageData: {
+       userId: userId,
+      },
+    });
     queryClient.invalidateQueries({ queryKey: ["conversation"] });
     refetch();
   };
@@ -196,8 +206,8 @@ function ChatList({ selectedChat, setSelectedChat }) {
                   <Button
                     onClick={(e) => {
                       setSelectedChat(chat.UserName);
-                      navigate(`chat/${chat.UserName}/${chat.id}`);
                       handleCheckConversation({ receiverID: chat.id });
+                      navigate(`chat/${chat.UserName}/${chat.id}`);
                       e.stopPropagation();
                     }}
                     className="cursor-pointer"

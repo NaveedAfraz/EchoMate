@@ -276,7 +276,7 @@ const getLastSeen = async (req, res) => {
   try {
     const q = "SELECT lastSeen FROM participations WHERE participantID = ?";
     const [rows] = await pool.query(q, [userId]);
-    console.log(rows, "rows");
+    //  console.log(rows, "rows");
 
     if (rows.length === 0) {
       return res

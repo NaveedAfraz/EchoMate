@@ -44,7 +44,6 @@ function NavBar() {
     } catch (error) {
       console.error("Error updating last seen:", error);
     }
-
     setTimeout(() => clerk.signOut(), 100);
   };
   return (

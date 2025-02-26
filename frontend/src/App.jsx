@@ -53,6 +53,8 @@ function App() {
   useEffect(() => {
     // Connect user when they log in
     if (userId) {
+      console.log("userId", userId);
+      // socket.emit("updateReadReceipts", receiveredID);
       socket.emit("user-online", userId);
     }
 
@@ -79,7 +81,24 @@ function App() {
       dispatch(setOnlineUsers([])); // Clear online users on logout
     }
   }, [isSignedIn, userId, dispatch]);
+  useEffect(() => {
+    socket.on("message", (messageData) => {
+      console.log("New message received:", messageData);
+      // Check if the message is for the current user
+      if (messageData.receiverId === userId) {
+        console.log("Message is for the current user");
+        socket.emit("message-delivered", {
+          receiverId: messageData.receiverId,
+          senderId: messageData.senderId,
+        });
+      }
+    });
 
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off("message");
+    };
+  }, [userId, dispatch]);
   return (
     <>
       <QueryClientProvider client={queryClient}>
