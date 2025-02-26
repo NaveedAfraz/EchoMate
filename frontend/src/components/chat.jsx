@@ -254,48 +254,58 @@ function Chat({}) {
     });
     sendMessage();
   };
-  // useEffect(() => {
-  //   socket.on("message-read", (data) => {
-  //     console.log("Received read update:", data);
-  //     // Update your local state or Redux store to reflect that messages in the conversation are now "read"
-  //     // Example using local state:
 
-  //     const newmessages = messages.map((prevMessages) =>
-  //       msg.conversationId === data.conversationId
-  //         ? { ...msg, ReadReceipts: data.newStatus }
-  //         : msg
-  //     );
+  socket.on("message-read", (data) => {
+    console.log("Received read update:", data);
 
-  //     setMessage(newmessages);
-  //     console.log(newmessages, "newmessages");
-  //   });
-
-  //   return () => {
-  //     socket.off("message-read");
-  //   };
-  // }, []);
+    dispatch(
+      setMessage(
+        messages.map((msg) =>
+          msg.conversationID === data.conversationId
+            ? { ...msg, ReadReceipts: "read" }
+            : msg
+        )
+      )
+    );
+  });
 
   useEffect(() => {
     socket.on("message", (message) => {
-      // console.log(message.senderId, "message sender");
-      // console.log(message.receiverId, "message receiver");
-      // console.log(reciverID, "current chat partner id");
-      // console.log(userId, "current user id");
+      console.log(message.senderId, "message sender");
+      console.log(message.receiverId, "message receiver");
+      console.log(reciverID, "current chat partner id");
+      console.log(userId, "current user id");
       console.log(message, "message");
 
-      if (
-        (message.senderId === reciverID && message.receiverId === userId) ||
-        (message.senderId === userId && message.receiverId === reciverID)
-      ) {
-        console.log(message, "message");
-        dispatch(setMessage([...messages, message]));
+      // Add the latest message first
+      dispatch(setMessage([...messages, message]));
+
+      // Only mark as "read" if the receiver is the current user AND they are viewing the chat
+      if (message.receiverId === userId && reciverID === message.senderId) {
+        console.log("Marking message as read...");
+
+        // Emit socket event to update DB
+        socket.emit("readMessage", {
+          messageData: {
+            userId: userId,
+            conversationId: message.conversationID,
+          },
+        });
+
+        // Update Redux state for read receipt
+        dispatch(
+          setMessage([
+            ...messages.map((msg) =>
+              msg.conversationID === message.conversationID
+                ? { ...msg, ReadReceipts: "read" }
+                : msg
+            ),
+            message, // Ensure the latest message is still added
+          ])
+        );
       }
     });
-    socket.emit("readMessage", {
-      messageData: {
-        userId: userId,
-      },
-    });
+
     return () => {
       socket.off("message");
     };

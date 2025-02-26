@@ -39,10 +39,10 @@ io.on("connection", (socket) => {
     );
     console.log(result, "read message update result");
 
-    // io.emit("message-read", {
-    //   conversationId: messageData.conversationId,
-    //   newStatus: "read",
-    // });
+    io.emit("message-read", {
+      conversationId: messageData.conversationId,
+      newStatus: "read",
+    });
   });
 
   //this checks if user is online then updates the message status to delivered
@@ -75,25 +75,6 @@ io.on("connection", (socket) => {
 
   socket.on("sendMessage", async (messageData) => {
     console.log("Message received:", messageData);
-console.log(onlineUsers, "online users");
-
-    // Check if recipient is online
-    const recipientSocketId = onlineUsers.get(messageData.receiverId);
-console.log("Recipient socket ID:", recipientSocketId);
-
-    // Set initial read receipt status
-    let readReceiptStatus = "sent";
-
-    // If recipient is online, mark as delivered immediately
-    if (recipientSocketId) {
-      readReceiptStatus = "delivered";
-    }
-
-    // Save the message to the database with the initial read receipt status
-    messageData.ReadReceipts = readReceiptStatus;
-console.log("Message data to be saved:", messageData);
-
-    // Emit the message to the recipient if they are online
     io.emit("message", messageData);
   });
 });
