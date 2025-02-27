@@ -71,7 +71,7 @@ io.on("connection", (socket) => {
     const seconds = pad(date.getSeconds());
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
-  //basically deltes the user online status
+
   socket.on("disconnect", async () => {
     const localDate = formatLocalDate(new Date());
     console.log(localDate, "localDate");

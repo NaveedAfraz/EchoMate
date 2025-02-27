@@ -36,18 +36,18 @@ function App() {
       (location.pathname === "/login" && userId) ||
       location.pathname === "/"
     ) {
-      navigate("/home");
+      navigate("/dashboard");
     }
   }, [isSignedIn, navigate, location.pathname]);
 
-  const NavOutlet = () => {
-    return (
-      <>
-        <NavBar />
-        <Outlet />
-      </>
-    );
-  };
+  // const NavOutlet = () => {
+  //   return (
+  //     <>
+  //       <NavBar />
+  //       <Outlet />
+  //     </>
+  //   );
+  // };
   const queryClient = new QueryClient();
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,19 +11,17 @@ import {
 
 function NavBar() {
   const clerk = useClerk();
-  function formatLocalDate(date) {
-    const pad = (n) => n.toString().padStart(2, "0");
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1); // Months are 0-indexed
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-    const seconds = pad(date.getSeconds());
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  }
+  const [activeBar, setActiveBar] = useState("");
+
+  const navLinks = [
+    { name: "Home", path: "/home" },
+    { name: "About", path: "/about" },
+    { name: "Dashboard", path: "/dashboard" },
+  ];
+
   const handleLogout = async () => {
     try {
-      const localDate = formatLocalDate(new Date());
+      const localDate = new Date().toISOString().slice(0, 19).replace("T", " ");
       console.log(localDate, "localDate");
 
       const response = await fetch(
@@ -38,6 +36,7 @@ function NavBar() {
           credentials: "include",
         }
       );
+
       if (!response.ok) {
         throw new Error("Failed to update last seen");
       }
@@ -46,6 +45,7 @@ function NavBar() {
     }
     setTimeout(() => clerk.signOut(), 100);
   };
+
   return (
     <nav className="text-black shadow-lg">
       <div className="mx-auto px-4 lg:px-8">
@@ -58,45 +58,37 @@ function NavBar() {
 
           <div className="hidden text-black md:block">
             <div className="ml-10 flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="lg"
-                asChild
-                className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
-              >
-                <Link to="/home">Home</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                asChild
-                className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
-              >
-                <Link
-                  to="/about"
-                  className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
+              {navLinks.map((link) => (
+                <Button
+                  key={link.name}
+                  variant="ghost"
+                  size="lg"
+                  asChild
+                  className={`hover:bg-gray-700 ${
+                    activeBar === link.name
+                      ? "bg-black text-white"
+                      : "text-black"
+                  } hover:text-white transition-colors duration-200`}
+                  onClick={() => setActiveBar(link.name)}
                 >
-                  About
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                asChild
-                className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
-              >
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
+                  <Link to={link.path}>{link.name}</Link>
+                </Button>
+              ))}
+
               <SignedOut>
                 <Button
                   variant="ghost"
                   size="lg"
                   asChild
-                  className="hover:bg-gray-700 hover:text-white transition-colors duration-200"
+                  onClick={() => setActiveBar("login")}
+                  className={`hover:bg-gray-700 ${
+                    activeBar === "login" ? "bg-black text-white" : "text-black"
+                  } hover:text-white transition-colors duration-200`}
                 >
                   <Link to="/login">Sign In</Link>
                 </Button>
               </SignedOut>
+
               <SignedIn>
                 <Button
                   onClick={handleLogout}
