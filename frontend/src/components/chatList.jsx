@@ -122,9 +122,15 @@ function ChatList({ selectedChat, setSelectedChat }) {
     if (!conversationID) {
       console.log("error");
     }
+    //   socket.emit("readMessage", {
+    //   messageData: {
+    //     userId: userId,
+    //   },
+    // });
+    queryClient.invalidateQueries({ queryKey: ["conversation"] });
     socket.emit("readMessage", {
       messageData: {
-       userId: userId,
+        userId: userId,
       },
     });
     queryClient.invalidateQueries({ queryKey: ["conversation"] });

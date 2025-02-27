@@ -24,7 +24,7 @@ io.on("connection", (socket) => {
       "UPDATE messages SET ReadReceipts = 'delivered' WHERE receiverId = ? AND ReadReceipts = 'sent'",
       [userID]
     );
-    // console.log(deliveredmessages, "delivered messages");
+    // consolVe.log(deliveredmessages, "delivered messages");
     socket.emit("delivered-messages", deliveredmessages);
     io.emit("online-users", Array.from(onlineUsers.keys()));
   });
@@ -50,7 +50,7 @@ io.on("connection", (socket) => {
     console.log("message delivered", receiverId, senderId);
     try {
       const result = await pool.query(
-        "UPDATE messages SET ReadReceipts = 'delivered' WHERE receiverId = ?",
+        "UPDATE messages SET ReadReceipts = 'delivered' WHERE receiverId = ? AND ReadReceipts = 'sent'",
         [receiverId]
       );
       if (result.affectedRows === 0) {
@@ -61,11 +61,31 @@ io.on("connection", (socket) => {
       console.error("Error updating delivered status:", err);
     }
   });
-
+  function formatLocalDate(date) {
+    const pad = (n) => n.toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1); // Months are 0-indexed
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
   //basically deltes the user online status
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
+    const localDate = formatLocalDate(new Date());
+    console.log(localDate, "localDate");
     for (let [userID, socketID] of onlineUsers.entries()) {
       if (socketID === socket.id) {
+        try {
+          const [response] = await pool.execute(
+            "UPDATE participations SET lastSeen = ? WHERE participantID = ?",
+            [localDate, userID]
+          );
+          console.log(response, "response");
+        } catch (err) {
+          console.error("Error updating online status:", err);
+        }
         onlineUsers.delete(userID);
         break;
       }
@@ -75,7 +95,42 @@ io.on("connection", (socket) => {
 
   socket.on("sendMessage", async (messageData) => {
     console.log("Message received:", messageData);
-    io.emit("message", messageData);
+
+    // Create a copy of messageData to avoid modifying the original
+    let senderMessageData = { ...messageData };
+    let recipientMessageData = { ...messageData };
+
+    // Get recipient's socket ID
+    const recipientSocketId = onlineUsers.get(messageData.receiverId);
+
+    // If recipient is online, mark as delivered
+    if (recipientSocketId) {
+      // Update status for recipient's copy
+      recipientMessageData.ReadReceipts = "delivered";
+
+      // Also update status for sender's copy so they see "delivered"
+      senderMessageData.ReadReceipts = "delivered";
+
+      // Update database
+      // try {
+      //   await pool.query(
+      //     "UPDATE messages SET ReadReceipts = 'delivered' WHERE id = ?",
+      //     [messageData.id]
+      //   );
+      // } catch (err) {
+      //   console.error("Error updating message status:", err);
+      // }
+
+      // Send to recipient with delivered status
+      io.to(recipientSocketId).emit("message", recipientMessageData);
+    } else {
+      // Recipient offline, keep as "sent"
+      senderMessageData.ReadReceipts = "sent";
+      console.log("Recipient is offline; message status remains 'sent'");
+    }
+
+    // Send back to sender with appropriate status
+    socket.emit("message", senderMessageData);
   });
 });
 

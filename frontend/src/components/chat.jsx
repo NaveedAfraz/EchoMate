@@ -256,13 +256,13 @@ function Chat({}) {
   };
 
   socket.on("message-read", (data) => {
-    console.log("Received read update:", data);
+    //console.log("Received read update:", data);
 
     dispatch(
       setMessage(
         messages.map((msg) =>
           msg.conversationID === data.conversationId
-            ? { ...msg, ReadReceipts: "read" }
+            ? { ...msg, ReadReceipts: data.newStatus }
             : msg
         )
       )
@@ -270,46 +270,49 @@ function Chat({}) {
   });
 
   useEffect(() => {
-    socket.on("message", (message) => {
-      console.log(message.senderId, "message sender");
-      console.log(message.receiverId, "message receiver");
-      console.log(reciverID, "current chat partner id");
-      console.log(userId, "current user id");
-      console.log(message, "message");
+    // Function to handle incoming messages
+    const handleMessage = (message) => {
+      console.log("Message received:", message);
 
-      // Add the latest message first
-      dispatch(setMessage([...messages, message]));
+      // Check if message belongs to current conversation
+      if (
+        (message.senderId === reciverID && message.receiverId === userId) ||
+        (message.senderId === userId && message.receiverId === reciverID)
+      ) {
+        // Get current messages from Redux store
+        const currentMessages = [...messages]; // Clone current messages array
 
-      // Only mark as "read" if the receiver is the current user AND they are viewing the chat
-      if (message.receiverId === userId && reciverID === message.senderId) {
-        console.log("Marking message as read...");
+        if (message.senderId === reciverID && message.receiverId === userId) {
+          // Incoming message - mark as read
+          const updatedMessage = { ...message, ReadReceipts: "read" };
 
-        // Emit socket event to update DB
-        socket.emit("readMessage", {
-          messageData: {
-            userId: userId,
-            conversationId: message.conversationID,
-          },
-        });
+          // Tell server message has been read
+          socket.emit("readMessage", {
+            messageData: {
+              userId: userId,
+              conversationId: message.conversationID,
+            },
+          });
 
-        // Update Redux state for read receipt
-        dispatch(
-          setMessage([
-            ...messages.map((msg) =>
-              msg.conversationID === message.conversationID
-                ? { ...msg, ReadReceipts: "read" }
-                : msg
-            ),
-            message, // Ensure the latest message is still added
-          ])
-        );
+          // Add to messages (no functional update)
+          dispatch(setMessage([...currentMessages, updatedMessage]));
+        } else {
+          // Outgoing message - add to messages (no functional update)
+          dispatch(setMessage([...currentMessages, message]));
+        }
       }
-    });
+    };
 
+    // Set up socket listener
+    socket.on("message", handleMessage);
+
+    // Clean up
     return () => {
-      socket.off("message");
+      socket.off("message", handleMessage);
     };
   }, [userId, reciverID, dispatch, messages]);
+  console.log("messages type:", typeof messages, Array.isArray(messages));
+  console.log("messages:", messages);
 
   return (
     <div className="flex flex-col h-[100%] relative">
@@ -338,7 +341,7 @@ function Chat({}) {
             )}
           </h1>
         </div>
-        <div className="h-full overflow-y-auto p-4 pb-30">
+        <div className="h-[90%] overflow-y-auto p-4">
           <>
             {conversationLoad || isLoading ? (
               <div className="flex flex-col gap-4 p-4">
@@ -425,16 +428,19 @@ function Chat({}) {
                     } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
                   >
                     {message.messages}
-
-                    {message.senderId === userId && (
-                      <CheckCheck
-                        className={`${
-                          message.ReadReceipts === "read"
-                            ? "text-green-500"
-                            : "text-gray-500"
-                        } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
-                      />
-                    )}
+                    {message.senderId === userId &&
+                      (message.ReadReceipts === "delivered" ||
+                      message.ReadReceipts === "read" ? (
+                        <CheckCheck
+                          className={`${
+                            message.ReadReceipts === "read"
+                              ? "text-green-500"
+                              : "text-gray-500"
+                          } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
+                        />
+                      ) : (
+                        <Check />
+                      ))}
                   </p>
                 </div>
               ))

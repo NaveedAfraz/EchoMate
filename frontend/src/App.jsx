@@ -81,6 +81,9 @@ function App() {
       dispatch(setOnlineUsers([])); // Clear online users on logout
     }
   }, [isSignedIn, userId, dispatch]);
+
+  // console.log("Socket instance:", socket);
+
   useEffect(() => {
     socket.on("message", (messageData) => {
       console.log("New message received:", messageData);
