@@ -93,6 +93,8 @@ function ChatList({ selectedChat, setSelectedChat }) {
     queryKey: ["conversation", receiverID],
     queryFn: async () => {
       try {
+        console.log(receiverID, "receiverID...");
+        
         const response = await axios.post(
           `http://localhost:3006/api/messages/check-conversation`,
           {
@@ -123,7 +125,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
     },
     enabled: Boolean(userId) && Boolean(receiverID),
     retry: 1,
-    staleTime: 0,
+    staleTime: 1000,
   });
 
   dispatch(setConversationLoad(conversationLoading));

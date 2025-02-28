@@ -272,49 +272,49 @@ function Chat() {
     );
   });
 
-  // useEffect(() => {
-  //   // Function to handle incoming messages
-  //   const handleMessage = (message) => {
-  //     console.log("Message received:", message);
+  useEffect(() => {
+    // Function to handle incoming messages
+    const handleMessage = (message) => {
+      console.log("Message received:", message);
 
-  //     // Check if message belongs to current conversation
-  //     if (
-  //       (message.senderId === reciverID && message.receiverId === userId) ||
-  //       (message.senderId === userId && message.receiverId === reciverID)
-  //     ) {
-  //       // Get current messages from Redux store
-  //       const currentMessages = [...messages]; // Clone current messages array
+      // Check if message belongs to current conversation
+      if (
+        (message.senderId === reciverID && message.receiverId === userId) ||
+        (message.senderId === userId && message.receiverId === reciverID)
+      ) {
+        // Get current messages from Redux store
+        const currentMessages = [...messages]; // Clone current messages array
 
-  //       if (message.senderId === reciverID && message.receiverId === userId) {
-  //         // Incoming message - mark as read
-  //         const updatedMessage = { ...message, ReadReceipts: "read" };
+        if (message.senderId === reciverID && message.receiverId === userId) {
+          // Incoming message - mark as read
+          const updatedMessage = { ...message, ReadReceipts: "read" };
 
-  //         // Tell server message has been read
-  //         socket.emit("readMessage", {
-  //           messageData: {
-  //             userId: userId,
-  //             conversationId: message.conversationID,
-  //           },
-  //         });
+          // Tell server message has been read
+          socket.emit("readMessage", {
+            messageData: {
+              userId: userId,
+              conversationId: message.conversationID,
+            },
+          });
 
-  //         // Add to messages (no functional update)
-  //         dispatch(setMessage([...currentMessages, updatedMessage]));
-  //       } else {
-  //         // Outgoing message - add to messages (no functional update)
-  //         dispatch(setMessage([...currentMessages, message]));
-  //       }
-  //     }
-  //   };
+          // Add to messages (no functional update)
+          dispatch(setMessage([...currentMessages, updatedMessage]));
+        } else {
+          // Outgoing message - add to messages (no functional update)
+          dispatch(setMessage([...currentMessages, message]));
+        }
+      }
+    };
 
-  //   // Set up socket listener
-  //   socket.on("message", handleMessage);
+    // Set up socket listener
+    socket.on("message", handleMessage);
 
-  //   // Clean up
-  //   return () => {
-  //     socket.off("message", handleMessage);
-  //   };
-  // }, [userId, reciverID, dispatch, messages]);
-  // console.log("messages type:", typeof messages, Array.isArray(messages));
+    // Clean up
+    return () => {
+      socket.off("message", handleMessage);
+    };
+  }, [userId, reciverID, dispatch, messages]);
+  //console.log("messages type:", typeof messages, Array.isArray(messages));
   // console.log("messages:", messages);
 
   return (
