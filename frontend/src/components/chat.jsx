@@ -58,7 +58,7 @@ function formatLastSeen(dateString) {
   }
 }
 
-function Chat({}) {
+function Chat() {
   const dispatch = useDispatch();
   const [username, setUsername] = useState("");
   const { userId } = useAuth();
@@ -70,16 +70,15 @@ function Chat({}) {
   const [inputValue, setInputValue] = useState("");
   const fileInputRef = useRef(null);
   const [filePath, setFile] = useState(null);
-  const { chatuserlist, conversationLoad, conversationID } = useSelector(
-    (state) => state.chatlist
-  );
+  const { chatuserlist, conversationLoad, conversationID, isGroup } =
+    useSelector((state) => state.chatlist);
   const { onlineUsers } = useSelector((state) => state.messages);
   console.log(onlineUsers, "onlineUsers");
   const [loading, setLoading] = useState(false);
   const { messages } = useSelector((state) => state.messages);
   //console.log(chatuserlist, "chatuserlist");
   // console.log(inputValue, "inputValue");
-  // console.log(messages, "messages");
+  console.log(messages, "messages");
 
   const getUsername = async () => {
     try {
@@ -89,7 +88,7 @@ function Chat({}) {
           withCredentials: true,
         }
       );
-      // console.log(response.data, "response.data");
+      console.log(response.data, "response.data");
       setUsername(response.data.username);
     } catch (error) {
       console.log(error);
@@ -169,10 +168,16 @@ function Chat({}) {
         return;
       }
       console.log(conversationID, "conversationID");
-
+      let endpoint;
+      if (conversationID && !isGroup) {
+        endpoint = `http://localhost:3006/api/messages/start-new-conversation`;
+      } else {
+        console.log("group conversation");
+        endpoint = `http://localhost:3006/api/messages/start-group-conversation`;
+      } 
       try {
         const response = await axios.post(
-          `http://localhost:3006/api/messages/start-new-conversation`,
+          endpoint,
           {
             message: inputValue,
             senderId: userId,
@@ -205,15 +210,7 @@ function Chat({}) {
       }
     },
   });
-
-  // useEffect(() => {
-  //   socket.emit("readMessage", {
-  //     messageData: {
-  //       userId: userId,
-  //     },
-  //   });
-
-  // }, [messages]);
+  console.log(conversationID, "conversationID");
   const {
     data: Messages,
     error,
@@ -224,20 +221,28 @@ function Chat({}) {
       console.log(conversationID, "conversationID");
       getUsername();
       try {
-        const reponse = await axios.get(
+        // Only make the API call if we have a valid conversationID
+        if (!conversationID) {
+          return [];
+        }
+
+        const response = await axios.get(
           `http://localhost:3006/api/messages/get-messages/${conversationID}`,
           {
             withCredentials: true,
           }
         );
-        console.log(reponse.data, "dataaaaaa");
-        dispatch(setMessage(reponse.data));
-        return reponse.data;
+        console.log(response.data, "dataaaaaa");
+        dispatch(setMessage(response.data));
+        return response.data;
       } catch (error) {
         console.log(error);
+        toast.error(error.response.data.message);
+        dispatch(setMessage([]));
       }
     },
-    enabled: !!conversationID,
+    // Only enable the query when we have both conversationID and reciverID
+    enabled: !!conversationID && !!reciverID,
   });
 
   const handleSend = async () => {
@@ -256,8 +261,6 @@ function Chat({}) {
   };
 
   socket.on("message-read", (data) => {
-    //console.log("Received read update:", data);
-
     dispatch(
       setMessage(
         messages.map((msg) =>
@@ -269,50 +272,50 @@ function Chat({}) {
     );
   });
 
-  useEffect(() => {
-    // Function to handle incoming messages
-    const handleMessage = (message) => {
-      console.log("Message received:", message);
+  // useEffect(() => {
+  //   // Function to handle incoming messages
+  //   const handleMessage = (message) => {
+  //     console.log("Message received:", message);
 
-      // Check if message belongs to current conversation
-      if (
-        (message.senderId === reciverID && message.receiverId === userId) ||
-        (message.senderId === userId && message.receiverId === reciverID)
-      ) {
-        // Get current messages from Redux store
-        const currentMessages = [...messages]; // Clone current messages array
+  //     // Check if message belongs to current conversation
+  //     if (
+  //       (message.senderId === reciverID && message.receiverId === userId) ||
+  //       (message.senderId === userId && message.receiverId === reciverID)
+  //     ) {
+  //       // Get current messages from Redux store
+  //       const currentMessages = [...messages]; // Clone current messages array
 
-        if (message.senderId === reciverID && message.receiverId === userId) {
-          // Incoming message - mark as read
-          const updatedMessage = { ...message, ReadReceipts: "read" };
+  //       if (message.senderId === reciverID && message.receiverId === userId) {
+  //         // Incoming message - mark as read
+  //         const updatedMessage = { ...message, ReadReceipts: "read" };
 
-          // Tell server message has been read
-          socket.emit("readMessage", {
-            messageData: {
-              userId: userId,
-              conversationId: message.conversationID,
-            },
-          });
+  //         // Tell server message has been read
+  //         socket.emit("readMessage", {
+  //           messageData: {
+  //             userId: userId,
+  //             conversationId: message.conversationID,
+  //           },
+  //         });
 
-          // Add to messages (no functional update)
-          dispatch(setMessage([...currentMessages, updatedMessage]));
-        } else {
-          // Outgoing message - add to messages (no functional update)
-          dispatch(setMessage([...currentMessages, message]));
-        }
-      }
-    };
+  //         // Add to messages (no functional update)
+  //         dispatch(setMessage([...currentMessages, updatedMessage]));
+  //       } else {
+  //         // Outgoing message - add to messages (no functional update)
+  //         dispatch(setMessage([...currentMessages, message]));
+  //       }
+  //     }
+  //   };
 
-    // Set up socket listener
-    socket.on("message", handleMessage);
+  //   // Set up socket listener
+  //   socket.on("message", handleMessage);
 
-    // Clean up
-    return () => {
-      socket.off("message", handleMessage);
-    };
-  }, [userId, reciverID, dispatch, messages]);
-  console.log("messages type:", typeof messages, Array.isArray(messages));
-  console.log("messages:", messages);
+  //   // Clean up
+  //   return () => {
+  //     socket.off("message", handleMessage);
+  //   };
+  // }, [userId, reciverID, dispatch, messages]);
+  // console.log("messages type:", typeof messages, Array.isArray(messages));
+  // console.log("messages:", messages);
 
   return (
     <div className="flex flex-col h-[100%] relative">
@@ -324,16 +327,22 @@ function Chat({}) {
         />
       </div>
       <div className="relative flex-1 overflow-hidden">
-        <div className="flex justify-between  backdrop-blur-sm items-center p-4">
+        <div className="flex justify-between backdrop-blur-sm items-center p-4">
           <h1 className="text-2xl font-bold">Chat</h1>
           <h1 className="text-2xl font-bold">
             {username.userName ? (
               <div className="flex flex-col items-center gap-2">
-                <span className="text-gray-600">{username.userName}</span>
+                <span className="text-gray-600">
+                  {username.userName == "undefined " ? (
+                    <p className="text-blue-600">Group</p>
+                  ) : (
+                    <p className="text-gray-600">{username.userName}</p>
+                  )}
+                </span>
                 <span className="text-gray-400 text-sm">
                   {lastSeen?.lastSeen && !onlineUsers.includes(reciverID)
                     ? `Last Seen : ${formatLastSeen(lastSeen.lastSeen)}`
-                    : "Online"}
+                    : lastSeen?.lastSeen && null}
                 </span>
               </div>
             ) : (
@@ -369,81 +378,82 @@ function Chat({}) {
               </div>
             ) : (
               messages.length !== 0 &&
-              messages?.map((message) => (
-                // console.log(message, "dataaaaaa"),
-                <div key={message.id} className=" relative flex flex-col mb-4">
-                  {/* {console.log(message.messageImage)} */}
-                  {message.messageImage && (
-                    <div
-                      className={`flex ${
-                        message.senderId === userId
-                          ? "justify-end"
-                          : "justify-start"
-                      } p-2`}
-                    >
+              messages
+                ?.filter((message) => message.conversationId === conversationID)
+                .map((message) => (
+                  <div key={message.id} className="relative flex flex-col mb-4">
+                    {/* {console.log(message, "message")} */}
+                    {message.messageImage && (
                       <div
-                        className={`w-50 p-2 rounded-lg ${
+                        className={`flex ${
                           message.senderId === userId
-                            ? "bg-blue-600"
-                            : "bg-amber-50"
-                        }`}
+                            ? "justify-end"
+                            : "justify-start"
+                        } p-2`}
                       >
-                        <IKImage
-                          urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                          path={message.messageImage}
-                          transformation={[
-                            {
-                              height: 200,
-                              width: 200,
-                            },
-                          ]}
-                          loading="lazy"
-                          onError={(err) => {
-                            console.error("Image load error:", err);
-                            // Optionally show a fallback image
-                          }}
-                          onLoad={() => {
-                            console.log(
-                              "Image loaded successfully:",
-                              message.messageImage
-                            );
-                          }}
-                          alt="Message Image"
-                          className="max-w-full h-auto rounded"
-                          // Add error fallback
-                          errorComponent={
-                            <div className="bg-gray-200 p-4 rounded">
-                              Failed to load image
-                            </div>
-                          }
-                        />
+                        <div
+                          className={`w-50 p-2 rounded-lg ${
+                            message.senderId === userId
+                              ? "bg-blue-600"
+                              : "bg-amber-50"
+                          }`}
+                        >
+                          <IKImage
+                            urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                            path={message.messageImage}
+                            transformation={[
+                              {
+                                height: 200,
+                                width: 200,
+                              },
+                            ]}
+                            loading="lazy"
+                            onError={(err) => {
+                              console.error("Image load error:", err);
+                              // Optionally show a fallback image
+                            }}
+                            onLoad={() => {
+                              console.log(
+                                "Image loaded successfully:",
+                                message.messageImage
+                              );
+                            }}
+                            alt="Message Image"
+                            className="max-w-full h-auto rounded"
+                            // Add error fallback
+                            errorComponent={
+                              <div className="bg-gray-200 p-4 rounded">
+                                Failed to load image
+                              </div>
+                            }
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <p
-                    className={`${
-                      message.senderId === userId
-                        ? "bg-blue-600 self-end text-white"
-                        : " bg-amber-50 self-start"
-                    } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
-                  >
-                    {message.messages}
-                    {message.senderId === userId &&
-                      (message.ReadReceipts === "delivered" ||
-                      message.ReadReceipts === "read" ? (
-                        <CheckCheck
-                          className={`${
-                            message.ReadReceipts === "read"
-                              ? "text-green-500"
-                              : "text-gray-500"
-                          } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
-                        />
-                      ) : (
-                        <Check />
-                      ))}
-                  </p>
-                </div>
-              ))
+                    )}
+                    <p
+                      className={`${
+                        message.senderId === userId
+                          ? "bg-blue-600 self-end text-white"
+                          : " bg-amber-50 self-start"
+                      } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                    >
+                      {message.messages}
+                      {message.senderId === userId &&
+                        (message.ReadReceipts === "delivered" ||
+                        message.ReadReceipts === "read" ? (
+                          <CheckCheck
+                            className={`${
+                              message.ReadReceipts === "read"
+                                ? "text-green-500"
+                                : "text-gray-500"
+                            } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
+                          />
+                        ) : (
+                          <Check />
+                        ))}
+                    </p>
+                  </div>
+                ))
             )}
             {isLoading && messages.length === 0 && (
               <div className="flex  justify-center h-full">
@@ -519,7 +529,7 @@ function Chat({}) {
             </Button>
           </div>
         </div>
-      </div>{" "}
+      </div>
     </div>
   );
 }

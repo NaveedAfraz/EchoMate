@@ -12,7 +12,7 @@ const messagesSlice = createSlice({
   initialState,
   reducers: {
     setMessage(state, action) {
-    //  console.log(action.payload, "action.payload");
+      // console.log(action.payload, "action.payload");
       state.messages = action.payload;
     },
     setLoading(state, action) {
@@ -26,7 +26,7 @@ const messagesSlice = createSlice({
         (user, index, self) => self.indexOf(user) === index
       );
     },
-  }, 
+  },
 });
 
 export const { setMessage, setLoading, setError, setOnlineUsers } =

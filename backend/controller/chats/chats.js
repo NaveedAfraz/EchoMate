@@ -1,24 +1,6 @@
 const { clerkClient } = require("@clerk/express");
 const pool = require("../../db");
 const { useAuth } = require("@clerk/express");
-const { useQuery } = require("@tanstack/react-query");
-
-// Create a custom hook for fetching user data
-const useUserData = (userId) => {
-  return useQuery({
-    queryKey: ["user", userId],
-    queryFn: async () => {
-      const response = await fetch(`https://api.clerk.dev/v1/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-        },
-      });
-      return response.json();
-    },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    cacheTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
-  });
-};
 
 const getSearchResults = async (req, res) => {
   const senderID = req.auth?.userId;
@@ -161,21 +143,21 @@ const getReqAccepted = async (req, res) => {
       });
     }
     const q = "SELECT * FROM request WHERE senderID = ?";
-    const [rows] = await pool.execute(q, [senderID]);
+    const [result] = await pool.execute(q, [senderID]);
     // console.log(rows, "rows");
 
-    const receiverID = rows.map((row) => row.receiverID);
+    const receiverID = result.map((row) => row.receiverID);
     // console.log(receiverID);
 
-    if (rows.length === 0) {
+    if (result.length === 0) {
       return res
         .status(404)
         .json({ message: "No accepted friend requests found" });
     }
 
-    const q1 = "SELECT * FROM request WHERE senderID = ?";
-    const values = [req.auth?.userId];
-    const [result] = await pool.query(q1, values);
+    // const q1 = "SELECT * FROM request WHERE senderID = ?";
+    // const values = [req.auth?.userId];
+    // const [result] = await pool.query(q1, values);
 
     const users = await clerkClient.users.getUserList({ ids: receiverID });
     //  console.log(users, "users");
@@ -190,7 +172,21 @@ const getReqAccepted = async (req, res) => {
           requestStatus: request ? request.requestStatus : null,
         };
       });
-    return res.status(200).json({ data: formattedUsers });
+
+    const userID = req.auth?.userId;
+    const q1 = `
+    SELECT c.*
+    FROM Conversations AS c
+    JOIN participations AS p
+      ON c.id = p.conversationID
+    WHERE p.participantID = ?
+  `; 
+    const [result2] = await pool.execute(q1, [userID]);
+    console.log(result2, "rows");
+    const group = result2.filter((row) => row.group == "yes");
+    console.log(group, "group");
+
+    return res.status(200).json({ data: formattedUsers, group: group });
   } catch (error) {
     console.log(error);
 
@@ -231,7 +227,7 @@ const getUser = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch user" });
   }
 };
-
+ 
 const sendLastSeen = async (req, res) => {
   const { userId, lastSeen } = req.body;
   console.log(userId, "userId");
@@ -297,6 +293,59 @@ const getLastSeen = async (req, res) => {
   }
 };
 
+//senond btn which is use to creaet a new grpup
+const newGroup = async (req, res) => {
+  try {
+    const { groupName, groupImage, userId } = req.body;
+    console.log(groupName, groupImage, userId);
+
+    if (!groupName || !groupImage || !userId) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const q =
+      "INSERT INTO Conversations (title , `group` ,groupImage, createdAt,userID) VALUES (?,?,?,NOW(),?)";
+
+    const values = [groupName, "yes", groupImage, userId];
+    const [result] = await pool.query(q, values);
+    console.log(result, "result");
+
+    if (result.affectedRows === 0) {
+      console.log("Failed to create group");
+      return res.status(500).json({ message: "Failed to create group" });
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Group created successfully" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json("internal serverl error");
+  }
+};
+
+const addParticipantsINGroup = async (req, res) => {
+  try {
+    const { conversationID, participantID } = req.body;
+    if (!conversationID || !participantID) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    const q =
+      "INSERT INTO participations (conversationID, participantID) VALUES (?,?)";
+    const values = [conversationID, participantID];
+    const [result] = await pool.query(q, values);
+    if (result.affectedRows === 0) {
+      console.log("Failed to add participant");
+      return res.status(500).json({ message: "Failed to add participant" });
+    }
+
+    return res.status(200).json({ message: "Participant added successfully" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json("internal serverl error");
+  }
+};
+
 module.exports = {
   getSearchResults,
   sendRequest,
@@ -304,4 +353,6 @@ module.exports = {
   getUser,
   sendLastSeen,
   getLastSeen,
+  newGroup,
+  addParticipantsINGroup,
 };

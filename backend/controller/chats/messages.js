@@ -27,7 +27,7 @@ const StartNewConversation = async (req, res) => {
        WHERE p1.participantID = ? AND p2.participantID = ?`,
       [senderId, receiverId]
     );
-
+    console.log(existingConversation, "existingConversation");
     let conversationId;
     if (existingConversation.length > 0) {
       conversationId = existingConversation[0].id;
@@ -65,26 +65,104 @@ const StartNewConversation = async (req, res) => {
   }
 };
 
+const StartGroupConversation = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const { senderId, isGroup, message, image, groupName, conversationID } =
+      req.body;
+    await connection.beginTransaction();
+    console.log(
+      senderId,
+      message,
+      image,
+   
+      conversationID,
+      "senderId, isGroup, message, image, groupName, conversationID"
+    );
+    if (!senderId || !message|| !conversationID) {
+      return res.status(400).json({
+        message:
+          "Missing required fields. Need senderId, message, and groupName",
+      });
+    }
+    let conversationId;
+    if (!conversationID) {
+      const [conversationResult] = await connection.query(
+        "INSERT INTO Conversations (title, `group`, createdAt, userID) VALUES (?, ?, NOW(), ?)",
+        [groupName, isGroup ? "1" : "0", senderId]
+      );
+      conversationId = conversationResult.insertId;
+      await connection.query(
+        "INSERT INTO participations (participantID, conversationID) VALUES (?, ?)",
+        [senderId, conversationId]
+      );
+    } else {
+      conversationId = conversationID;
+    }
+
+    const [rows] = await connection.query(
+      "INSERT INTO messages (conversationId, senderId,receiverId, messages, messageImage) VALUES (?, ?, ?, ?, ?)",
+      [conversationId, senderId, "group", message, image ? image : null]
+    );
+
+    await connection.commit();
+
+    return res.status(200).json({
+      message: "Group created successfully",
+      data: rows,
+      conversationId: conversationId,
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  } finally {
+    connection.release();
+  }
+};
+
 const CheckConversation = async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
     const { senderId, receiverId } = req.body;
-    // console.log(senderId, receiverId, "senderId, receiverId");
+    console.log(senderId, receiverId, "senderId, receiverId");
 
-    const [rows] = await connection.query(
-      `SELECT c.id 
-       FROM Conversations c
-       JOIN participations p1 ON c.id = p1.conversationID
-       JOIN participations p2 ON c.id = p2.conversationID
-       WHERE p1.participantID = ? AND p2.participantID = ?`,
-      [senderId, receiverId]
-    );
-    // console.log(rows, "rows");
+    if (!senderId || !receiverId) {
+      console.log("missing fields");
+      return res.status(400).json({ message: "Missing required fields" });
+    } 
+ 
+    let rows;
+    if (receiverId) {
+      console.log("normal conversation");
+      [rows] = await connection.query(
+        `SELECT c.id  
+         FROM Conversations c
+         JOIN participations p1 ON c.id = p1.conversationID 
+         JOIN participations p2 ON c.id = p2.conversationID
+         WHERE p1.participantID = ? AND p2.participantID = ?`,
+        [senderId, receiverId]
+      ); 
+    } else {
+      // Query for single participant conversation 
+      console.log("grp  participant conversation");
+      [rows] = await connection.query(
+        `SELECT c.id 
+         FROM Conversations c
+         JOIN participations p ON c.id = p.conversationID
+         WHERE p.participantID = ? AND c.userID = ?
+         LIMIT 1`,
+        [senderId, senderId]
+      );
+    }
+
+    console.log(rows, "rowssssssssssss");
     if (rows.length > 0) {
       return res.status(200).json(rows[0].id);
     } else {
-      return res.status(404).json({ message: "No conversation found" });
+      return res.status(401).json({ message: "No conversation found" });
     }
   } catch (error) {
     console.error(error);
@@ -94,43 +172,12 @@ const CheckConversation = async (req, res) => {
   }
 };
 
-// const SendMessages = async (req, res) => {
-//   try {
-//     const { conversationId, senderId, message } = req.body;
-//     const connection = await pool.getConnection();
-//     if (!conversationId || !senderId || !message) {
-//       console.log("Missing required fields");
-//       return res.status(400).json({ message: "Missing required fields" });
-//     }
-
-//     await connection.beginTransaction();
-
-//     const [conversationResult] = await connection.query(
-//       "SELECT * FROM Conversations WHERE id = ?",
-//       [conversationId]
-//     );
-//     if (conversationResult.length === 0) {
-//       return res.status(404).json({ message: "Conversation not found" });
-//     }
-
-//     await connection.commit();
-
-//     return res.status(200).json({ message: "Message sent successfully" });
-//   } catch (error) {
-//     await connection.rollback();
-//     console.log(error);
-//     return res.status(500).json({ message: "Internal server error" });
-//   } finally {
-//     connection.release();
-//   }
-// };
-
 const GetMessages = async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
     const { conversationId } = req.params;
-  //  console.log(conversationId, "conversationId");
+    //  console.log(conversationId, "conversationId");
 
     if (!conversationId) {
       console.log("Missing conversationId");
@@ -154,8 +201,10 @@ const GetMessages = async (req, res) => {
     connection.release();
   }
 };
+
 module.exports = {
   StartNewConversation,
+  StartGroupConversation,
   CheckConversation,
   GetMessages,
 };

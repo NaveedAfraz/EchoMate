@@ -8,6 +8,8 @@ const {
   getUser,
   sendLastSeen,
   getLastSeen,
+  newGroup,
+  addParticipantsINGroup,
 } = require("../../controller/chats/chats");
 
 router.get("/fetchUsers/:searchTerm", getSearchResults);
@@ -16,4 +18,7 @@ router.post("/sendRequest/:senderID", sendRequest);
 router.get("/getUser/:clerkId", getUser);
 router.post("/sendlastSeen", sendLastSeen);
 router.get("/last-seen/:userId", getLastSeen);
+router.post("/newGroup", newGroup);
+router.post("/addParticipantsINGroup", addParticipantsINGroup);
 module.exports = router;
+  

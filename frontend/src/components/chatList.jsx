@@ -15,6 +15,9 @@ import {
 } from "@/store/chatlist";
 import { Skeleton } from "@/components/ui/skeleton";
 import socket from "../../helper/socket";
+import AddGroup from "./AddGroup";
+import { IKImage } from "imagekitio-react";
+import { setMessage } from "@/store/messages";
 
 function ChatList({ selectedChat, setSelectedChat }) {
   const [search, setSearch] = useState("");
@@ -24,12 +27,14 @@ function ChatList({ selectedChat, setSelectedChat }) {
   const { chatuserlist, conversationLoad } = useSelector(
     (state) => state.chatlist
   );
+  const [groups, setgroups] = useState([]);
   console.log(chatuserlist, "chatuserlist");
   const { onlineUsers } = useSelector((state) => state.messages);
   const location = useLocation();
   const receiverID = location.pathname.split("/")[4];
   const dispatch = useDispatch();
-
+  console.log(receiverID, "receiverID");
+  console.log(userId, "userId");
   const {
     data: chatList,
     isLoading,
@@ -40,15 +45,15 @@ function ChatList({ selectedChat, setSelectedChat }) {
     queryKey: ["chats", search],
     queryFn: async () => {
       try {
-        //console.log(userId, "userId");
         const endpoint = search
           ? `http://localhost:3006/api/users/fetchUsers/${search}`
           : `http://localhost:3006/api/users/fetchRequestedUsers`;
-        // console.log(endpoint, "endpoint");
-        // console.log(chatList, "chatList");
 
         const response = await axios.get(endpoint, { withCredentials: true });
-        // console.log(response);
+        console.log(response);
+        // queryClient.invalidateQueries({ queryKey: ["chats"] });
+        setgroups(response.data.group);
+        //dispatch(setConversationID({ conversationID: response.data.group.id }));
         return response.data;
       } catch (error) {
         console.log(error);
@@ -88,56 +93,61 @@ function ChatList({ selectedChat, setSelectedChat }) {
     queryKey: ["conversation", receiverID],
     queryFn: async () => {
       try {
-        //console.log(receiverID, "receiverID");
-        console.log(userId, "userId");
-
         const response = await axios.post(
           `http://localhost:3006/api/messages/check-conversation`,
           {
             senderId: userId,
-            receiverId: receiverID || receiverID,
+            receiverId: receiverID,
           },
           {
             withCredentials: true,
           }
         );
-        console.log(response);
+        console.log(response, "response .....");
+
+        if (!response || !response.data) {
+          dispatch(setConversationID({ conversationID: null }));
+          dispatch(setMessage([]));
+          return null;
+        }
+
         dispatch(setConversationID({ conversationID: response.data }));
         return response.data;
       } catch (error) {
-        console.log(error);
-        throw error;
+        dispatch(setConversationID({ conversationID: null }));
+        dispatch(setMessage([]));
+        queryClient.invalidateQueries({ queryKey: ["messages"] });
+        console.error("Conversation check error:", error);
+        return null;
       }
     },
-    enabled: !!userId && !!receiverID,
-    retry: false,
+    enabled: Boolean(userId) && Boolean(receiverID),
+    retry: 1,
     staleTime: 0,
   });
+
   dispatch(setConversationLoad(conversationLoading));
   console.log(conversationID);
   const handleCheckConversation = async (receiverID) => {
     //   console.log(receiverID, "receiverID");
-    console.log(userId, "userId");
+    console.log(userId, "receiverID");
 
     if (!conversationID) {
       console.log("error");
     }
-    //   socket.emit("readMessage", {
-    //   messageData: {
-    //     userId: userId,
-    //   },
-    // });
-    queryClient.invalidateQueries({ queryKey: ["conversation"] });
     socket.emit("readMessage", {
       messageData: {
         userId: userId,
       },
     });
-    queryClient.invalidateQueries({ queryKey: ["conversation"] });
+    queryClient.invalidateQueries({ queryKey: ["conversation", receiverID] });
     refetch();
   };
+
   //console.log(chatList, "chatList");
   useEffect(() => {
+    console.log(chatList, "chatList");
+
     if (chatList && chatList.data) {
       const filteredAndMapped = chatList.data
         .filter((chat) => chat.id !== userId && chat.requestStatus !== null)
@@ -150,17 +160,22 @@ function ChatList({ selectedChat, setSelectedChat }) {
       dispatch(setChatList(filteredAndMapped));
     }
   }, [chatList, dispatch, userId]);
-  console.log(isLoading, "isLoading");
+  // console.log(isLoading, "isLoading");
+  console.log(groups, "groups");
 
   return (
     <div className={`flex flex-col gap-2 p-5 `}>
-      <button
-        className="flex cursor-pointer my-2 font-bold p-2 rounded-xl mx-1"
-        onClick={() => navigate("/notifications")}
-      >
-        <p className="pr-2">Nodifications</p>
-        <Heart />
-      </button>
+      <div className="flex justify-between items-center">
+        <button
+          className="flex cursor-pointer my-2 font-bold p-2 rounded-xl mx-1"
+          onClick={() => navigate("/notifications")}
+        >
+          <p className="pr-2">Nodifications</p>
+          <Heart />
+        </button>
+        <AddGroup />
+      </div>
+
       <Input
         placeholder="Search"
         onKeyDown={(e) => setSearch(e.target.value)}
@@ -237,6 +252,42 @@ function ChatList({ selectedChat, setSelectedChat }) {
         ) : (
           <div className="text-white">No chats found</div>
         )}
+        <div className="w-full relative">
+          {groups.map((group) => (
+            <div
+              key={group.id}
+              className="p-1 bg-black text-white rounded-xl items-center w-[100%] gap-4 flex"
+            >
+              {group.groupImage && (
+                <IKImage
+                  urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                  path={group.groupImage}
+                  transformation={[{ height: 50, width: 50 }]}
+                  className="rounded-full"
+                  alt="Profile Preview"
+                />
+              )}
+              <h2 className="text-md font-bold">{group.title}</h2>
+              <Button
+                className={`text-white absolute right-9 cursor-pointer`}
+                onClick={(e) => {
+                  navigate(`chat/${group.title}/${group.id}`);
+                  setSelectedChat(group.title);
+                  dispatch(
+                    setConversationID({
+                      conversationID: group.id,
+                      isGroup: true,
+                    })
+                  );
+                  handleCheckConversation({ receiverID: group.id });
+                  e.stopPropagation();
+                }}
+              >
+                Group
+              </Button>
+            </div>
+          ))}
+        </div>
       </div>
       {isLoading && (
         <div className="h-full flex flex-col gap-4 p-4">

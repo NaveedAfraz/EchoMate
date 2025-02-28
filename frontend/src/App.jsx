@@ -22,6 +22,7 @@ import { setOnlineUsers } from "./store/messages";
 import { useDispatch, useSelector } from "react-redux";
 import socket from "../helper/socket";
 import About from "./pages/about";
+import AddGroup from "./components/AddGroup";
 
 function App() {
   const { isSignedIn } = useUser();
@@ -111,6 +112,7 @@ function App() {
 
           <Route path="/dashboard" element={<DashBoard />}>
             <Route path="chat/:userName/:receiverID" element={<Chat />} />
+            <Route path="addgroup" element={<AddGroup />} />
           </Route>
 
           <Route path="/home" element={<Home />} />
@@ -118,6 +120,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<Sign_Up />} />
           <Route path="/about" element={<About />} />
+
           {/* </Route> */}
         </Routes>
       </QueryClientProvider>
