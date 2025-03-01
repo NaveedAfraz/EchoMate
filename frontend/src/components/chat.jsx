@@ -236,7 +236,7 @@ function Chat() {
         if (!conversationID) {
           return [];
         }
-
+        dispatch(setMessage([]));
         const response = await axios.get(
           `http://localhost:3006/api/messages/get-messages/${conversationID}`,
           {
@@ -244,6 +244,7 @@ function Chat() {
           }
         );
         console.log(response.data, "dataaaaaa");
+
         dispatch(setMessage(response.data));
         return response.data;
       } catch (error) {
@@ -252,7 +253,6 @@ function Chat() {
         dispatch(setMessage([]));
       }
     },
-
     enabled: !!conversationID && !!reciverID,
   });
 
@@ -264,13 +264,13 @@ function Chat() {
       return;
     }
 
-    if (!isGroup) {
-      socket.emit("readMessage", {
-        messageData: {
-          userId: userId,
-        },
-      });
-    }
+    // if (!isGroup) {
+    //   socket.emit("readMessage", {
+    //     messageData: {
+    //       userId: userId,
+    //     },
+    //   });
+    // }
     sendMessage();
   };
 
@@ -337,6 +337,11 @@ function Chat() {
   }, [userId, reciverID, dispatch, messages]);
   //console.log("messages type:", typeof messages, Array.isArray(messages));
   // console.log("messages:", messages);
+
+  // Add this useEffect for cleanup
+  useEffect(() => {
+    dispatch(setMessage([]));
+  }, [conversationID]);
 
   return (
     <div className="flex flex-col h-[100%] relative">
@@ -405,82 +410,80 @@ function Chat() {
               </div>
             ) : (
               messages.length !== 0 &&
-              messages
-                ?.filter((message) => message.conversationId === conversationID)
-                .map((message) => (
-                  <div key={message.id} className="relative flex flex-col mb-4">
-                    {/* {console.log(message, "message")} */}
-                    {message.messageImage && (
-                      <div
-                        className={`flex ${
-                          message.senderId === userId
-                            ? "justify-end"
-                            : "justify-start"
-                        } p-2`}
-                      >
-                        <div
-                          className={`w-50 p-2 rounded-lg ${
-                            message.senderId === userId
-                              ? "bg-blue-600"
-                              : "bg-amber-50"
-                          }`}
-                        >
-                          <IKImage
-                            urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                            path={message.messageImage}
-                            transformation={[
-                              {
-                                height: 200,
-                                width: 200,
-                              },
-                            ]}
-                            loading="lazy"
-                            onError={(err) => {
-                              console.error("Image load error:", err);
-                              // Optionally show a fallback image
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                "Image loaded successfully:",
-                                message.messageImage
-                              );
-                            }}
-                            alt="Message Image"
-                            className="max-w-full h-auto rounded"
-                            // Add error fallback
-                            errorComponent={
-                              <div className="bg-gray-200 p-4 rounded">
-                                Failed to load image
-                              </div>
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <p
-                      className={`${
+              messages?.map((message) => (
+                <div key={message.id} className="relative flex flex-col mb-4">
+                  {/* {console.log(message, "message")} */}
+                  {message.messageImage && (
+                    <div
+                      className={`flex ${
                         message.senderId === userId
-                          ? "bg-blue-600 self-end text-white"
-                          : " bg-amber-50 self-start"
-                      } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                          ? "justify-end"
+                          : "justify-start"
+                      } p-2`}
                     >
-                      {message.messages}
-                      {message.senderId === userId &&
-                        (message.ReadReceipts === "delivered" ||
-                        message.ReadReceipts === "read" ? (
-                          <CheckCheck
-                            className={`${
-                              message.ReadReceipts === "read"
-                                ? "text-green-500"
-                                : "text-gray-500"
-                            } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
-                          />
-                        ) : (
-                          <Check />
-                        ))}
-                    </p>
-                  </div>
-                ))
+                      <div
+                        className={`w-50 p-2 rounded-lg ${
+                          message.senderId === userId
+                            ? "bg-blue-600"
+                            : "bg-amber-50"
+                        }`}
+                      >
+                        <IKImage
+                          urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
+                          path={message.messageImage}
+                          transformation={[
+                            {
+                              height: 200,
+                              width: 200,
+                            },
+                          ]}
+                          loading="lazy"
+                          onError={(err) => {
+                            console.error("Image load error:", err);
+                            // Optionally show a fallback image
+                          }}
+                          onLoad={() => {
+                            console.log(
+                              "Image loaded successfully:",
+                              message.messageImage
+                            );
+                          }}
+                          alt="Message Image"
+                          className="max-w-full h-auto rounded"
+                          // Add error fallback
+                          errorComponent={
+                            <div className="bg-gray-200 p-4 rounded">
+                              Failed to load image
+                            </div>
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <p
+                    className={`${
+                      message.senderId === userId
+                        ? "bg-blue-600 self-end text-white"
+                        : " bg-amber-50 self-start"
+                    } rounded-2xl px-4 py-2 max-w-[80%] break-words`}
+                  >
+                    {message.messages}
+                    {message.senderId === userId &&
+                      (message.ReadReceipts === "delivered" ||
+                      message.ReadReceipts === "read" ? (
+                        <CheckCheck
+                          className={`${
+                            message.ReadReceipts === "read"
+                              ? "text-green-500"
+                              : "text-gray-500"
+                          } text-[14px] w-4 h-10 absolute bottom-[-12px] right-1.5`}
+                        />
+                      ) : (
+                        <Check />
+                      ))}
+                  </p>
+                </div>
+              ))
             )}
             {isLoading && messages.length === 0 && (
               <div className="flex  justify-center h-full">

@@ -98,7 +98,6 @@ function ChatList({ selectedChat, setSelectedChat }) {
   } = useQuery({
     queryKey: ["conversation", receiverID],
     queryFn: async () => {
-      // We'll use a state variable instead of meta
       try {
         console.log(receiverID, "receiverID...");
         console.log(userId, "userId...");
@@ -114,12 +113,12 @@ function ChatList({ selectedChat, setSelectedChat }) {
             withCredentials: true,
           }
         );
-        console.log(response, "response .....");
+        console.log(response, "response.....");
 
         if (response.status === 401 || !response.data) {
           dispatch(setConversationID({ conversationID: null }));
           dispatch(setMessage([]));
-          return null;
+          return;
         }
 
         dispatch(setConversationID({ conversationID: response.data }));
@@ -133,8 +132,8 @@ function ChatList({ selectedChat, setSelectedChat }) {
       }
     },
     enabled: Boolean(userId) && Boolean(receiverID),
-    retry: 6,
-    staleTime: 1000,
+    retry: 1,
+    staleTime: 0,
   });
 
   dispatch(setConversationLoad(conversationLoading));
@@ -144,22 +143,26 @@ function ChatList({ selectedChat, setSelectedChat }) {
     console.log(userId, "userId");
     console.log(isGroup, "isGroup..");
     console.log(receiverID, "receiverID");
+
     if (isGroup == true) {
-      socket.emit("joinRoom", { conversationID: receiverID }); //7
+      socket.emit("joinRoom", { conversationID: receiverID }); 
     }
 
-    // Store isGroup value in sessionStorage for the query function to use
-    sessionStorage.setItem("isGroupChat", isGroup);
+    if (isGroup == false) {
+      socket.emit("leaveRoom", { conversationID: conversationID });
+    }
+
+    // sessionStorage.setItem("isGroupChat", isGroup);
 
     if (!conversationID) {
       console.log("error");
     }
 
-    socket.emit("readMessage", {
-      messageData: {
-        userId: userId,
-      },
-    });
+    // socket.emit("readMessage", {
+    //   messageData: {
+    //     userId: userId,
+    //   },
+    // });
 
     queryClient.invalidateQueries({ queryKey: ["conversation", receiverID] });
     refetchConversation();
@@ -254,6 +257,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
                       });
                       dispatch(setgroup(false));
                       navigate(`chat/${chat.UserName}/${chat.id}`);
+
                       e.stopPropagation();
                     }}
                     className="cursor-pointer"

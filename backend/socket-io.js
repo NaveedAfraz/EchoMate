@@ -31,13 +31,13 @@ io.on("connection", (socket) => {
 
   //on click the chat it updates the messages to read
   socket.on("readMessage", async ({ messageData }) => {
-    // console.log("read messa  ge ", messageData);
+    //console.log("read messa  ge ", messageData);
 
     const result = await pool.query(
       "UPDATE messages SET ReadReceipts = 'read' WHERE receiverId  = ?",
       [messageData.userId]
     );
-    // console.log(result, "read message update result");
+    console.log(result, "read message update result");
 
     io.emit("message-read", {
       conversationId: messageData.conversationId,
@@ -133,8 +133,7 @@ io.on("connection", (socket) => {
       // One-on-one message handling
       const recipientSocketId = onlineUsers.get(messageData.receiverId);
       let recipientMessageData = { ...messageData };
-   console.log(recipientSocketId, "recipientSocketId");
-   
+      console.log(recipientSocketId, "recipientSocketId");
 
       if (recipientSocketId) {
         recipientMessageData.ReadReceipts = "delivered";
@@ -171,6 +170,10 @@ io.on("connection", (socket) => {
     const room = io.sockets.adapter.rooms.get(conversationID);
     const numClients = room ? room.size : 0;
     console.log(`Room ${conversationID} now has ${numClients} client(s).`);
+  });
+  socket.on("leaveRoom", ({ conversationID }) => {
+    socket.leave(conversationID);
+    console.log("left room", conversationID);
   });
 });
 
