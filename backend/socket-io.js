@@ -100,10 +100,12 @@ io.on("connection", (socket) => {
     // Check if this is a group message (receiverId is "group")
     if (messageData.receiverId === "group") {
       // Ensure the sender is in the room for the conversation (group)
-      if (!socket.rooms.has(messageData.conversationID)) {
-        socket.join(messageData.conversationID);
-      }
+      // if (!socket.rooms.has(messageData.conversationId)) {
+      //   console.log("Joining room:", messageData.conversationId);
 
+      //   socket.join(messageData.conversationId);
+      // }
+ 
       // For group messages, we update the message status to 'delivered'
       // For a global group status (i.e. without per-user read receipt), mark as delivered
       let groupMessageData = { ...messageData, ReadReceipts: "delivered" };

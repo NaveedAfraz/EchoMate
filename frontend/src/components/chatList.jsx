@@ -312,7 +312,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
                     receiverID: group.id,
                     isGroup: true,
                   });
-                  
+                  socket.emit("joinRoom", { conversationID: group.id });
                   e.stopPropagation();
                 }}
               >
