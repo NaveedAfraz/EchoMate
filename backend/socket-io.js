@@ -14,7 +14,7 @@ const io = require("socket.io")(server, {
 const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
-  console.log("User connected");
+  // console.log("User connected");
 
   //on log in it updates the messages to delivered
   socket.on("user-online", async (userID) => {
@@ -24,20 +24,20 @@ io.on("connection", (socket) => {
       "UPDATE messages SET ReadReceipts = 'delivered' WHERE receiverId = ? AND ReadReceipts = 'sent'",
       [userID]
     );
-    // consolVe.log(deliveredmessages, "delivered messages");
+    // console.log(deliveredmessages, "delivered messages");
     socket.emit("delivered-messages", deliveredmessages);
     io.emit("online-users", Array.from(onlineUsers.keys()));
   });
 
   //on click the chat it updates the messages to read
   socket.on("readMessage", async ({ messageData }) => {
-    console.log("read messa  ge ", messageData);
+    // console.log("read messa  ge ", messageData);
 
     const result = await pool.query(
       "UPDATE messages SET ReadReceipts = 'read' WHERE receiverId  = ?",
       [messageData.userId]
     );
-    console.log(result, "read message update result");
+    // console.log(result, "read message update result");
 
     io.emit("message-read", {
       conversationId: messageData.conversationId,
@@ -47,16 +47,16 @@ io.on("connection", (socket) => {
 
   //this checks if user is online then updates the message status to delivered
   socket.on("message-delivered", async ({ receiverId, senderId }) => {
-    console.log("message delivered", receiverId, senderId);
+    // console.log("message delivered", receiverId, senderId);
     try {
       const result = await pool.query(
         "UPDATE messages SET ReadReceipts = 'delivered' WHERE receiverId = ? AND ReadReceipts = 'sent'",
         [receiverId]
       );
       if (result.affectedRows === 0) {
-        return console.log("No messages found to update");
+        return; // console.log("No messages found to update");
       }
-      console.log("Message delivered updated:", result);
+      // console.log("Message delivered updated:", result);
     } catch (err) {
       console.error("Error updating delivered status:", err);
     }
@@ -74,7 +74,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     const localDate = formatLocalDate(new Date());
-    console.log(localDate, "localDate");
+    // console.log(localDate, "localDate");
     for (let [userID, socketID] of onlineUsers.entries()) {
       if (socketID === socket.id) {
         try {
@@ -82,7 +82,7 @@ io.on("connection", (socket) => {
             "UPDATE participations SET lastSeen = ? WHERE participantID = ?",
             [localDate, userID]
           );
-          console.log(response, "response");
+          // console.log(response, "response");
         } catch (err) {
           console.error("Error updating online status:", err);
         }
@@ -94,43 +94,63 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendMessage", async (messageData) => {
-    console.log("Message received:", messageData);
-
-    // Create a copy of messageData to avoid modifying the original
+    // Create a copy for the sender response
     let senderMessageData = { ...messageData };
-    let recipientMessageData = { ...messageData };
 
-    // Get recipient's socket ID
-    const recipientSocketId = onlineUsers.get(messageData.receiverId);
+    // Check if this is a group message (receiverId is "group")
+    if (messageData.receiverId === "group") {
+      // Ensure the sender is in the room for the conversation (group)
+      if (!socket.rooms.has(messageData.conversationID)) {
+        socket.join(messageData.conversationID);
+      }
 
-    // If recipient is online, mark as delivered
-    if (recipientSocketId) {
-      // Update status for recipient's copy
-      recipientMessageData.ReadReceipts = "delivered";
+      // For group messages, we update the message status to 'delivered'
+      // For a global group status (i.e. without per-user read receipt), mark as delivered
+      let groupMessageData = { ...messageData, ReadReceipts: "delivered" };
+      console.log(messageData, "messageData");
 
-      // Also update status for sender's copy so they see "delivered"
-      senderMessageData.ReadReceipts = "delivered";
+      // Broadcast to everyone in the room. Using io.in() sends to all sockets in that room.
+      console.log("Emitting message to room:", messageData.conversationId);
 
-      // Update database
+      io.in(messageData.conversationId).emit("message", groupMessageData);
+      // Optionally update the database for the group message status
       // try {
       //   await pool.query(
-      //     "UPDATE messages SET ReadReceipts = 'delivered' WHERE id = ?",
-      //     [messageData.id]
+      //     "UPDATE messages SET ReadReceipts = 'delivered' WHERE conversationID = ? AND id = ?",
+      //     [messageData.conversationID, messageData.id]
       //   );
       // } catch (err) {
-      //   console.error("Error updating message status:", err);
+      //   console.error("Error updating group message status:", err);
       // }
-
-      // Send to recipient with delivered status
-      io.to(recipientSocketId).emit("message", recipientMessageData);
     } else {
-      // Recipient offline, keep as "sent"
-      senderMessageData.ReadReceipts = "sent";
-      console.log("Recipient is offline; message status remains 'sent'");
-    }
+      // One-on-one message handling
+      const recipientSocketId = onlineUsers.get(messageData.receiverId);
+      let recipientMessageData = { ...messageData };
 
-    // Send back to sender with appropriate status
-    socket.emit("message", senderMessageData);
+      if (recipientSocketId) {
+        recipientMessageData.ReadReceipts = "delivered";
+        senderMessageData.ReadReceipts = "delivered";
+
+        // Send message to the recipient only
+        io.to(recipientSocketId).emit("message", recipientMessageData);
+
+        // try {
+        //   // Update the database for one-on-one message status
+        //   await pool.query(
+        //     "UPDATE messages SET ReadReceipts = 'delivered' WHERE id = ?",
+        //     [messageData.id]
+        //   );
+        // } catch (err) {
+        //   console.error("Error updating message status:", err);
+        // }
+      } else {
+        // If recipient is offline, the sender message remains 'sent'
+        senderMessageData.ReadReceipts = "sent";
+      }
+
+      // Send the final status back to the sender
+      socket.emit("message", senderMessageData);
+    }
   });
 });
 

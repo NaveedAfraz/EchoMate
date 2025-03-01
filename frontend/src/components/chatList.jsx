@@ -101,7 +101,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
       try {
         console.log(receiverID, "receiverID...");
         console.log(userId, "userId...");
- 
+
         // Get the current isGroup value from the URL or state
         const currentPath = location.pathname;
         // Check if we're in a group chat based on some condition
@@ -148,6 +148,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
 
   dispatch(setConversationLoad(conversationLoading));
   console.log(conversationID);
+
   const handleCheckConversation = async ({ receiverID, isGroup }) => {
     console.log(userId, "userId");
     console.log(isGroup, "isGroup...");
@@ -311,6 +312,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
                     receiverID: group.id,
                     isGroup: true,
                   });
+                  
                   e.stopPropagation();
                 }}
               >

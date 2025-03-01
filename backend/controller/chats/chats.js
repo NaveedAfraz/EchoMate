@@ -11,15 +11,12 @@ const getSearchResults = async (req, res) => {
     }
 
     const users = await clerkClient.users.getUserList();
-    console.log(users, "users");
     const q = "SELECT * FROM request WHERE senderID = ?";
     const values = [req.auth?.userId];
     const [result] = await pool.query(q, values);
-    //console.log(result, "result.rows");
-    console.log(searchTerm, "searchTerm");
 
     if (!users) {
-      console.log("Users not found");
+      // console.log("Users not found");
     }
     const filteredUsers = users.data.filter((user) => {
       return (user.firstName || "").includes(searchTerm);
@@ -35,10 +32,10 @@ const getSearchResults = async (req, res) => {
           requestStatus: request ? request.requestStatus : "unknown",
         };
       });
-    console.log(formattedUsers, "formattedUsers");
+    // console.log(formattedUsers, "formattedUsers");
     return res.status(200).json({ data: formattedUsers });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -50,8 +47,8 @@ const sendRequest = async (req, res) => {
     const { receiverID } = req.body;
 
     if (!senderID || !receiverID) {
-      console.log("senderID", senderID);
-      console.log("receiverID", receiverID);
+      // console.log("senderID", senderID);
+      // console.log("receiverID", receiverID);
       return res
         .status(400)
         .json({ message: "Sender ID and Receiver ID are required" });
@@ -112,7 +109,7 @@ const sendRequest = async (req, res) => {
       data: requestResult,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
     if (connection) {
       // Rollback the transaction in case of error
@@ -137,7 +134,7 @@ const getReqAccepted = async (req, res) => {
     // console.log(senderID);
 
     if (!senderID) {
-      console.log("Sender ID is missing");
+      // console.log("Sender ID is missing");
       return res.status(401).json({
         message: "Unauthorized",
       });
@@ -180,15 +177,15 @@ const getReqAccepted = async (req, res) => {
     JOIN participations AS p
       ON c.id = p.conversationID
     WHERE p.participantID = ?
-  `; 
+  `;
     const [result2] = await pool.execute(q1, [userID]);
-    console.log(result2, "rows");
+    // console.log(result2, "rows");
     const group = result2.filter((row) => row.group == "yes");
-    console.log(group, "group");
+    // console.log(group, "group");
 
     return res.status(200).json({ data: formattedUsers, group: group });
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
     res.status(500).json({ message: "Internal server error" });
   }
@@ -198,7 +195,7 @@ const getReqAccepted = async (req, res) => {
 const getUser = async (req, res) => {
   const { clerkId } = req.params;
   if (!clerkId) {
-    console.log("Clerk ID is required");
+    // console.log("Clerk ID is required");
     return res.status(400).json({ message: "Clerk ID is required" });
   }
   const clerkSecretKey = process.env.CLERK_SECRET_KEY;
@@ -220,18 +217,18 @@ const getUser = async (req, res) => {
       }`,
       image: userData.imageUrl,
     };
-    console.log(formattedUser, "formattedUser");
+    // console.log(formattedUser, "formattedUser");
     res.json({ username: formattedUser });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch user" });
   }
 };
- 
+
 const sendLastSeen = async (req, res) => {
   const { userId, lastSeen } = req.body;
-  console.log(userId, "userId");
-  console.log(lastSeen, "lastSeen");
+  // console.log(userId, "userId");
+  // console.log(lastSeen, "lastSeen");
   if (!userId || !lastSeen) {
     return res
       .status(400)
@@ -244,26 +241,26 @@ const sendLastSeen = async (req, res) => {
     //  console.log(result, "result");
 
     if (result[0].length === 0) {
-      console.log("User not found");
+      // console.log("User not found");
 
       return res.status(404).json("User not found");
     }
     const q3 = "UPDATE participations SET lastSeen = ? WHERE participantID = ?";
     const values3 = [lastSeen, userId];
-    console.log(values3, "values3");
+    // console.log(values3, "values3");
     const result3 = await pool.query(q3, values3);
-    console.log(result3, "result3");
+    // console.log(result3, "result3");
 
     return res.status(200).json("Last seen updated!");
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json("internal serverl error");
   }
 };
 
 const getLastSeen = async (req, res) => {
   const { userId } = req.params;
-  console.log(userId, "userId");
+  // console.log(userId, "userId");
 
   if (!userId) {
     return res.status(400).json({ message: "User ID is required" });
@@ -274,7 +271,7 @@ const getLastSeen = async (req, res) => {
       "SELECT lastSeen , participantID FROM participations WHERE participantID = ?";
     const [rows] = await pool.query(q, [userId]);
 
-    console.log(rows, "rows");
+    // console.log(rows, "rows");
 
     if (rows.length === 0) {
       return res
@@ -297,7 +294,7 @@ const getLastSeen = async (req, res) => {
 const newGroup = async (req, res) => {
   try {
     const { groupName, groupImage, userId } = req.body;
-    console.log(groupName, groupImage, userId);
+    // console.log(groupName, groupImage, userId);
 
     if (!groupName || !groupImage || !userId) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -308,10 +305,10 @@ const newGroup = async (req, res) => {
 
     const values = [groupName, "yes", groupImage, userId];
     const [result] = await pool.query(q, values);
-    console.log(result, "result");
+    // console.log(result, "result");
 
     if (result.affectedRows === 0) {
-      console.log("Failed to create group");
+      // console.log("Failed to create group");
       return res.status(500).json({ message: "Failed to create group" });
     }
 
@@ -319,7 +316,7 @@ const newGroup = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Group created successfully" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json("internal serverl error");
   }
 };
@@ -335,13 +332,13 @@ const addParticipantsINGroup = async (req, res) => {
     const values = [conversationID, participantID];
     const [result] = await pool.query(q, values);
     if (result.affectedRows === 0) {
-      console.log("Failed to add participant");
+      // console.log("Failed to add participant");
       return res.status(500).json({ message: "Failed to add participant" });
     }
 
     return res.status(200).json({ message: "Participant added successfully" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json("internal serverl error");
   }
 };

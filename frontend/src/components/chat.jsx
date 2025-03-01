@@ -167,7 +167,9 @@ function Chat() {
         toast("Please wait for the user to accept your request");
         return;
       }
+      let isGroup = true;
       console.log(conversationID, "conversationID");
+      console.log(isGroup, "isGroup");
       let endpoint;
       if (conversationID && !isGroup) {
         endpoint = `http://localhost:3006/api/messages/start-new-conversation`;
@@ -175,6 +177,7 @@ function Chat() {
         console.log("group conversation");
         endpoint = `http://localhost:3006/api/messages/start-group-conversation`;
       }
+      console.log(endpoint, "endpoint");
       try {
         const response = await axios.post(
           endpoint,
@@ -190,12 +193,20 @@ function Chat() {
           }
         );
         console.log(response);
+        let readReceipt;
+        let reciver;
+
+        if (isGroup) {
+          console.log("group conversation");
+          readReceipt = "delivered";
+          reciver = "group";
+        }
 
         socket.emit("sendMessage", {
           messages: inputValue,
           senderId: userId,
-          receiverId: reciverID,
-          ReadReceipts: "sent",
+          receiverId: reciver || reciverID,
+          ReadReceipts: readReceipt,
           messageImage: filePath,
           conversationId: conversationID,
         });
@@ -247,16 +258,19 @@ function Chat() {
 
   const handleSend = async () => {
     if (inputValue.trim() === "") return;
-
+    // console.log(chatuserlist, "chatuserlist");
     if (chatuserlist[0].requestStatus == "pending") {
       toast("Please wait for the user to accept your request");
       return;
     }
-    socket.emit("readMessage", {
-      messageData: {
-        userId: userId,
-      },
-    });
+    let isGroup = true;
+    if (!isGroup) {
+      socket.emit("readMessage", {
+        messageData: {
+          userId: userId,
+        },
+      });
+    }
     sendMessage();
   };
 
@@ -288,7 +302,7 @@ function Chat() {
         if (message.senderId === reciverID && message.receiverId === userId) {
           // Incoming message - mark as read
           console.log(message, "message...");
-          
+
           const updatedMessage = { ...message, ReadReceipts: "read" };
 
           // Tell server message has been read
@@ -303,8 +317,16 @@ function Chat() {
           dispatch(setMessage([...currentMessages, updatedMessage]));
         } else {
           // Outgoing message - add to messages (no functional update)
+          console.log(message, "message...");
           dispatch(setMessage([...currentMessages, message]));
         }
+      }
+      if (message.receiverId == "group") {
+        console.log("group message");
+        console.log(message, "message");
+
+        const currentMessages = [...messages]; // Clone current messages array
+        dispatch(setMessage([...currentMessages, message]));
       }
     };
 
@@ -384,7 +406,7 @@ function Chat() {
                 ?.filter((message) => message.conversationId === conversationID)
                 .map((message) => (
                   <div key={message.id} className="relative flex flex-col mb-4">
-                    {console.log(message, "message")}
+                    {/* {console.log(message, "message")} */}
                     {message.messageImage && (
                       <div
                         className={`flex ${
@@ -441,7 +463,6 @@ function Chat() {
                     >
                       {message.messages}
                       {message.senderId === userId &&
-                        message.receiverId != "group" &&
                         (message.ReadReceipts === "delivered" ||
                         message.ReadReceipts === "read" ? (
                           <CheckCheck

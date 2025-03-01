@@ -6,14 +6,6 @@ const StartNewConversation = async (req, res) => {
   try {
     const { senderId, receiverId, conversationID, message, image } = req.body;
     await connection.beginTransaction();
-    console.log(
-      senderId,
-      receiverId,
-      conversationID,
-      message,
-      image,
-      "senderId, receiverId, conversationID, message, image"
-    );
 
     if (!senderId || !message || !receiverId) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -27,7 +19,6 @@ const StartNewConversation = async (req, res) => {
        WHERE p1.participantID = ? AND p2.participantID = ?`,
       [senderId, receiverId]
     );
-    console.log(existingConversation, "existingConversation");
     let conversationId;
     if (existingConversation.length > 0) {
       conversationId = existingConversation[0].id;
@@ -72,14 +63,7 @@ const StartGroupConversation = async (req, res) => {
     const { senderId, isGroup, message, image, groupName, conversationID } =
       req.body;
     await connection.beginTransaction();
-    console.log(
-      senderId,
-      message,
-      image,
 
-      conversationID,
-      "senderId, isGroup, message, image, groupName, conversationID"
-    );
     if (!senderId || !message || !conversationID) {
       return res.status(400).json({
         message:
@@ -102,8 +86,8 @@ const StartGroupConversation = async (req, res) => {
     }
 
     const [rows] = await connection.query(
-      "INSERT INTO messages (conversationId, senderId,receiverId, messages, messageImage) VALUES (?, ?, ?, ?, ?)",
-      [conversationId, senderId, "group", message, image ? image : null]
+      "INSERT INTO messages (conversationId, senderId,receiverId, messages,ReadReceipts, messageImage) VALUES (?, ?, ?, ?, ?, ?)",
+      [conversationId, senderId, "group", message, "delivered", image ? image : null]
     );
 
     await connection.commit();
@@ -127,16 +111,13 @@ const CheckConversation = async (req, res) => {
 
   try {
     const { senderId, receiverId, isGroup } = req.body;
-    console.log(senderId, receiverId, isGroup, "senderId, receiverId, isGroup");
 
     if (!senderId || !receiverId) {
-      console.log("missing fields");
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     let rows;
     if (receiverId && !isGroup) {
-      console.log("normal conversation");
       [rows] = await connection.query(
         `SELECT c.id  
          FROM Conversations c
@@ -147,17 +128,15 @@ const CheckConversation = async (req, res) => {
         [senderId, receiverId]
       );
     } else if (receiverId && isGroup) {
-      console.log("group participant conversation");
       [rows] = await connection.query(
         `SELECT c.id 
          FROM Conversations c
          JOIN participations p ON c.id = p.conversationID
          WHERE c.id = ? AND p.participantID = ? AND c.\`group\` = 'yes'`,
         [receiverId, senderId]
-      ); 
+      );
     }
- 
-    console.log(rows, "rowssssssssssss");
+
     if (rows.length > 0) {
       if (isGroup) {
         return res.status(200).json(parseInt(receiverId));
@@ -165,7 +144,7 @@ const CheckConversation = async (req, res) => {
       return res.status(200).json(rows[0].id);
     } else {
       return res.status(401).json({ message: "No conversation found" });
-    } 
+    }
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -179,10 +158,8 @@ const GetMessages = async (req, res) => {
 
   try {
     const { conversationId } = req.params;
-    //  console.log(conversationId, "conversationId");
 
     if (!conversationId) {
-      console.log("Missing conversationId");
       return res.status(400).json({ message: "Missing conversationId" });
     }
 
@@ -190,9 +167,7 @@ const GetMessages = async (req, res) => {
       "SELECT * FROM messages WHERE conversationID = ?",
       [conversationId]
     );
-    // console.log(rows, "rows");
     if (rows.length === 0) {
-      console.log("No messages found");
       return res.status(404).json({ message: "No messages found" });
     }
     return res.status(200).json(rows);
