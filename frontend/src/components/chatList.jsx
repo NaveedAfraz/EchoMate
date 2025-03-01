@@ -12,6 +12,7 @@ import {
   setChatList,
   setConversationLoad,
   setConversationID,
+  setgroup,
 } from "@/store/chatlist";
 import { Skeleton } from "@/components/ui/skeleton";
 import socket from "../../helper/socket";
@@ -24,7 +25,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
   const queryClient = useQueryClient();
   const { userId } = useAuth();
   //console.log(userId, "userId");
-  const { chatuserlist, conversationLoad } = useSelector(
+  const { chatuserlist, conversationLoad, isGroup } = useSelector(
     (state) => state.chatlist
   );
   const [groups, setgroups] = useState([]);
@@ -102,16 +103,6 @@ function ChatList({ selectedChat, setSelectedChat }) {
         console.log(receiverID, "receiverID...");
         console.log(userId, "userId...");
 
-        // Get the current isGroup value from the URL or state
-        const currentPath = location.pathname;
-        // Check if we're in a group chat based on some condition
-        // This is a placeholder - you need to implement your own logic
-        const isGroup =
-          currentPath.includes("/group/") ||
-          sessionStorage.getItem("isGroupChat") === "true";
-
-        console.log("Using isGroup value:", isGroup);
-
         const response = await axios.post(
           `http://localhost:3006/api/messages/check-conversation`,
           {
@@ -151,7 +142,11 @@ function ChatList({ selectedChat, setSelectedChat }) {
 
   const handleCheckConversation = async ({ receiverID, isGroup }) => {
     console.log(userId, "userId");
-    console.log(isGroup, "isGroup...");
+    console.log(isGroup, "isGroup..");
+    console.log(receiverID, "receiverID");
+    if (isGroup == true) {
+      socket.emit("joinRoom", { conversationID: receiverID }); //7
+    }
 
     // Store isGroup value in sessionStorage for the query function to use
     sessionStorage.setItem("isGroupChat", isGroup);
@@ -257,6 +252,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
                         receiverID: chat.id,
                         isGroup: false,
                       });
+                      dispatch(setgroup(false));
                       navigate(`chat/${chat.UserName}/${chat.id}`);
                       e.stopPropagation();
                     }}
@@ -312,7 +308,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
                     receiverID: group.id,
                     isGroup: true,
                   });
-                  socket.emit("joinRoom", { conversationID: group.id });
+                  dispatch(setgroup(true));
                   e.stopPropagation();
                 }}
               >
@@ -322,6 +318,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
           ))}
         </div>
       </div>
+      {console.log(isGroup, "isGroup...")}
       {isLoading && (
         <div className="h-full flex flex-col gap-4 p-4">
           {[...Array(5)].map((_, index) => (

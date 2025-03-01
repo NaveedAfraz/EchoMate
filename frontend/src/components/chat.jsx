@@ -62,6 +62,7 @@ function Chat() {
   const dispatch = useDispatch();
   const [username, setUsername] = useState("");
   const { userId } = useAuth();
+
   //console.log(userId);
   const location = useLocation();
   const reciverID = location.pathname.split("/")[4];
@@ -73,13 +74,13 @@ function Chat() {
   const { chatuserlist, conversationLoad, conversationID, isGroup } =
     useSelector((state) => state.chatlist);
   const { onlineUsers } = useSelector((state) => state.messages);
-  console.log(onlineUsers, "onlineUsers");
+  console.log(onlineUsers, "onlineUsers....");
   const [loading, setLoading] = useState(false);
   const { messages } = useSelector((state) => state.messages);
   //console.log(chatuserlist, "chatuserlist");
   // console.log(inputValue, "inputValue");
   console.log(messages, "messages");
-
+  console.log(isGroup, "isGroup...");
   const getUsername = async () => {
     try {
       const response = await axios.get(
@@ -94,6 +95,7 @@ function Chat() {
       console.log(error);
     }
   };
+  console.log(reciverID, "reciverID....");
 
   const { data: lastSeen } = useQuery({
     queryKey: ["lastSeen", reciverID],
@@ -116,7 +118,7 @@ function Chat() {
     },
     enabled: !!userId,
   });
-  console.log(lastSeen, "lastSeen");
+  console.log(lastSeen, "lastSeen....");
 
   const handleFileClick = () => {
     fileInputRef.current.click();
@@ -167,9 +169,8 @@ function Chat() {
         toast("Please wait for the user to accept your request");
         return;
       }
-      let isGroup = true;
       console.log(conversationID, "conversationID");
-      console.log(isGroup, "isGroup");
+      // console.log(isGroup, "isGroup");
       let endpoint;
       if (conversationID && !isGroup) {
         endpoint = `http://localhost:3006/api/messages/start-new-conversation`;
@@ -211,7 +212,7 @@ function Chat() {
           conversationId: conversationID,
         });
 
-        toast.success(response.data.message);
+        // toast.success(response.data.message);
         setInputValue("");
         setFile(null);
         return response.data;
@@ -232,7 +233,6 @@ function Chat() {
       console.log(conversationID, "conversationID");
       getUsername();
       try {
-        // Only make the API call if we have a valid conversationID
         if (!conversationID) {
           return [];
         }
@@ -252,7 +252,7 @@ function Chat() {
         dispatch(setMessage([]));
       }
     },
-    // Only enable the query when we have both conversationID and reciverID
+
     enabled: !!conversationID && !!reciverID,
   });
 
@@ -263,7 +263,7 @@ function Chat() {
       toast("Please wait for the user to accept your request");
       return;
     }
-    let isGroup = true;
+
     if (!isGroup) {
       socket.emit("readMessage", {
         messageData: {
@@ -291,13 +291,11 @@ function Chat() {
     const handleMessage = (message) => {
       console.log("Message received:", message);
 
-      // Check if message belongs to current conversation
       if (
         (message.senderId === reciverID && message.receiverId === userId) ||
         (message.senderId === userId && message.receiverId === reciverID)
       ) {
-        // Get current messages from Redux store
-        const currentMessages = [...messages]; // Clone current messages array
+        const currentMessages = [...messages];
         console.log(message, "message...");
         if (message.senderId === reciverID && message.receiverId === userId) {
           // Incoming message - mark as read
@@ -325,12 +323,11 @@ function Chat() {
         console.log("group message");
         console.log(message, "message");
 
-        const currentMessages = [...messages]; // Clone current messages array
+        const currentMessages = [...messages]; // Clone
         dispatch(setMessage([...currentMessages, message]));
       }
     };
 
-    // Set up socket listener
     socket.on("message", handleMessage);
 
     // Clean up
@@ -366,7 +363,13 @@ function Chat() {
                 <span className="text-gray-400 text-sm">
                   {lastSeen?.lastSeen && !onlineUsers.includes(reciverID)
                     ? `Last Seen : ${formatLastSeen(lastSeen.lastSeen)}`
-                    : lastSeen?.lastSeen && null}
+                    : lastSeen?.lastSeen &&
+                      onlineUsers.includes(reciverID) &&
+                      !isGroup && (
+                        <p className="text-green-600 text-lg font-bold">
+                          online
+                        </p>
+                      )}
                 </span>
               </div>
             ) : (

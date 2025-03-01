@@ -93,7 +93,7 @@ const StartGroupConversation = async (req, res) => {
     await connection.commit();
 
     return res.status(200).json({
-      message: "Group created successfully",
+      message: "Message sent successfully",
       data: rows,
       conversationId: conversationId,
     });

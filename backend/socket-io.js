@@ -96,6 +96,7 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (messageData) => {
     // Create a copy for the sender response
     let senderMessageData = { ...messageData };
+    console.log(messageData, "messageData");
 
     // Check if this is a group message (receiverId is "group")
     if (messageData.receiverId === "group") {
@@ -105,7 +106,7 @@ io.on("connection", (socket) => {
 
       //   socket.join(messageData.conversationId);
       // }
- 
+
       // For group messages, we update the message status to 'delivered'
       // For a global group status (i.e. without per-user read receipt), mark as delivered
       let groupMessageData = { ...messageData, ReadReceipts: "delivered" };
@@ -113,7 +114,11 @@ io.on("connection", (socket) => {
 
       // Broadcast to everyone in the room. Using io.in() sends to all sockets in that room.
       console.log("Emitting message to room:", messageData.conversationId);
-
+      const room = io.sockets.adapter.rooms.get(messageData.conversationId);
+      const numClients = room ? room.size : 0;
+      console.log(
+        `Room ${messageData.conversationId} has ${numClients} clients.`
+      );
       io.in(messageData.conversationId).emit("message", groupMessageData);
       // Optionally update the database for the group message status
       // try {
@@ -128,6 +133,8 @@ io.on("connection", (socket) => {
       // One-on-one message handling
       const recipientSocketId = onlineUsers.get(messageData.receiverId);
       let recipientMessageData = { ...messageData };
+   console.log(recipientSocketId, "recipientSocketId");
+   
 
       if (recipientSocketId) {
         recipientMessageData.ReadReceipts = "delivered";
@@ -153,6 +160,17 @@ io.on("connection", (socket) => {
       // Send the final status back to the sender
       socket.emit("message", senderMessageData);
     }
+  });
+  // Listen for joinRoom events from clients
+  socket.on("joinRoom", ({ conversationID }) => {
+    console.log("joinRoom event received for room:", conversationID);
+    // Join the room
+    socket.join(conversationID);
+
+    // Check how many clients are in the room
+    const room = io.sockets.adapter.rooms.get(conversationID);
+    const numClients = room ? room.size : 0;
+    console.log(`Room ${conversationID} now has ${numClients} client(s).`);
   });
 });
 
