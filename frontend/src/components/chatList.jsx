@@ -43,7 +43,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
     refetch,
   } = useQuery({
     queryKey: ["chats", search],
-    queryFn: async () => {
+    queryFn: async ({ isGroup }) => {
       try {
         const endpoint = search
           ? `http://localhost:3006/api/users/fetchUsers/${search}`
@@ -89,17 +89,35 @@ function ChatList({ selectedChat, setSelectedChat }) {
     }
   };
 
-  const { data: conversationID, isLoading: conversationLoading } = useQuery({
+  const {
+    data: conversationID,
+    isLoading: conversationLoading,
+    isError: conversationError,
+    refetch: refetchConversation,
+  } = useQuery({
     queryKey: ["conversation", receiverID],
     queryFn: async () => {
+      // We'll use a state variable instead of meta
       try {
         console.log(receiverID, "receiverID...");
-        
+        console.log(userId, "userId...");
+ 
+        // Get the current isGroup value from the URL or state
+        const currentPath = location.pathname;
+        // Check if we're in a group chat based on some condition
+        // This is a placeholder - you need to implement your own logic
+        const isGroup =
+          currentPath.includes("/group/") ||
+          sessionStorage.getItem("isGroupChat") === "true";
+
+        console.log("Using isGroup value:", isGroup);
+
         const response = await axios.post(
           `http://localhost:3006/api/messages/check-conversation`,
           {
             senderId: userId,
             receiverId: receiverID,
+            isGroup: isGroup,
           },
           {
             withCredentials: true,
@@ -107,7 +125,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
         );
         console.log(response, "response .....");
 
-        if (!response || !response.data) {
+        if (response.status === 401 || !response.data) {
           dispatch(setConversationID({ conversationID: null }));
           dispatch(setMessage([]));
           return null;
@@ -124,26 +142,31 @@ function ChatList({ selectedChat, setSelectedChat }) {
       }
     },
     enabled: Boolean(userId) && Boolean(receiverID),
-    retry: 1,
+    retry: 6,
     staleTime: 1000,
   });
 
   dispatch(setConversationLoad(conversationLoading));
   console.log(conversationID);
-  const handleCheckConversation = async (receiverID) => {
-    //   console.log(receiverID, "receiverID");
-    console.log(userId, "receiverID");
+  const handleCheckConversation = async ({ receiverID, isGroup }) => {
+    console.log(userId, "userId");
+    console.log(isGroup, "isGroup...");
+
+    // Store isGroup value in sessionStorage for the query function to use
+    sessionStorage.setItem("isGroupChat", isGroup);
 
     if (!conversationID) {
       console.log("error");
     }
+
     socket.emit("readMessage", {
       messageData: {
         userId: userId,
       },
     });
+
     queryClient.invalidateQueries({ queryKey: ["conversation", receiverID] });
-    refetch();
+    refetchConversation();
   };
 
   //console.log(chatList, "chatList");
@@ -229,7 +252,10 @@ function ChatList({ selectedChat, setSelectedChat }) {
                   <Button
                     onClick={(e) => {
                       setSelectedChat(chat.UserName);
-                      handleCheckConversation({ receiverID: chat.id });
+                      handleCheckConversation({
+                        receiverID: chat.id,
+                        isGroup: false,
+                      });
                       navigate(`chat/${chat.UserName}/${chat.id}`);
                       e.stopPropagation();
                     }}
@@ -281,7 +307,10 @@ function ChatList({ selectedChat, setSelectedChat }) {
                       isGroup: true,
                     })
                   );
-                  handleCheckConversation({ receiverID: group.id });
+                  handleCheckConversation({
+                    receiverID: group.id,
+                    isGroup: true,
+                  });
                   e.stopPropagation();
                 }}
               >

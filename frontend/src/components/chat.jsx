@@ -174,7 +174,7 @@ function Chat() {
       } else {
         console.log("group conversation");
         endpoint = `http://localhost:3006/api/messages/start-group-conversation`;
-      } 
+      }
       try {
         const response = await axios.post(
           endpoint,
@@ -197,7 +197,7 @@ function Chat() {
           receiverId: reciverID,
           ReadReceipts: "sent",
           messageImage: filePath,
-          conversationID: conversationID,
+          conversationId: conversationID,
         });
 
         toast.success(response.data.message);
@@ -284,9 +284,11 @@ function Chat() {
       ) {
         // Get current messages from Redux store
         const currentMessages = [...messages]; // Clone current messages array
-
+        console.log(message, "message...");
         if (message.senderId === reciverID && message.receiverId === userId) {
           // Incoming message - mark as read
+          console.log(message, "message...");
+          
           const updatedMessage = { ...message, ReadReceipts: "read" };
 
           // Tell server message has been read
@@ -382,7 +384,7 @@ function Chat() {
                 ?.filter((message) => message.conversationId === conversationID)
                 .map((message) => (
                   <div key={message.id} className="relative flex flex-col mb-4">
-                    {/* {console.log(message, "message")} */}
+                    {console.log(message, "message")}
                     {message.messageImage && (
                       <div
                         className={`flex ${
@@ -439,6 +441,7 @@ function Chat() {
                     >
                       {message.messages}
                       {message.senderId === userId &&
+                        message.receiverId != "group" &&
                         (message.ReadReceipts === "delivered" ||
                         message.ReadReceipts === "read" ? (
                           <CheckCheck

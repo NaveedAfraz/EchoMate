@@ -76,11 +76,11 @@ const StartGroupConversation = async (req, res) => {
       senderId,
       message,
       image,
-   
+
       conversationID,
       "senderId, isGroup, message, image, groupName, conversationID"
     );
-    if (!senderId || !message|| !conversationID) {
+    if (!senderId || !message || !conversationID) {
       return res.status(400).json({
         message:
           "Missing required fields. Need senderId, message, and groupName",
@@ -126,44 +126,46 @@ const CheckConversation = async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
-    const { senderId, receiverId } = req.body;
-    console.log(senderId, receiverId, "senderId, receiverId");
+    const { senderId, receiverId, isGroup } = req.body;
+    console.log(senderId, receiverId, isGroup, "senderId, receiverId, isGroup");
 
     if (!senderId || !receiverId) {
       console.log("missing fields");
       return res.status(400).json({ message: "Missing required fields" });
-    } 
- 
+    }
+
     let rows;
-    if (receiverId) {
+    if (receiverId && !isGroup) {
       console.log("normal conversation");
       [rows] = await connection.query(
         `SELECT c.id  
          FROM Conversations c
          JOIN participations p1 ON c.id = p1.conversationID 
          JOIN participations p2 ON c.id = p2.conversationID
-         WHERE p1.participantID = ? AND p2.participantID = ?`,
+         WHERE p1.participantID = ? AND p2.participantID = ?
+         AND c.\`group\` = 'no'`,
         [senderId, receiverId]
-      ); 
-    } else {
-      // Query for single participant conversation 
-      console.log("grp  participant conversation");
+      );
+    } else if (receiverId && isGroup) {
+      console.log("group participant conversation");
       [rows] = await connection.query(
         `SELECT c.id 
          FROM Conversations c
          JOIN participations p ON c.id = p.conversationID
-         WHERE p.participantID = ? AND c.userID = ?
-         LIMIT 1`,
-        [senderId, senderId]
-      );
+         WHERE c.id = ? AND p.participantID = ? AND c.\`group\` = 'yes'`,
+        [receiverId, senderId]
+      ); 
     }
-
+ 
     console.log(rows, "rowssssssssssss");
     if (rows.length > 0) {
+      if (isGroup) {
+        return res.status(200).json(parseInt(receiverId));
+      }
       return res.status(200).json(rows[0].id);
     } else {
       return res.status(401).json({ message: "No conversation found" });
-    }
+    } 
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
