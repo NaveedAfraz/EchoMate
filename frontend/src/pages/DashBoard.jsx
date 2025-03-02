@@ -1,13 +1,12 @@
 import ChatList from "@/components/chatList";
-import Chat from "@/components/chat";
+import Chat from "@/pages/chat";
 import React, { useState } from "react";
 import { Outlet, useParams } from "react-router";
 function DashBoard() {
   const [selectedChat, setSelectedChat] = useState(null);
   const params = useParams();
   console.log(selectedChat, "selectedChat");
-  
-  
+
   return (
     <div className="flex flex-col `">
       <div className="flex h-[92.55vh] ">

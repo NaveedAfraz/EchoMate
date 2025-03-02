@@ -15,7 +15,7 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import Home from "./pages/home";
 import DashBoard from "./pages/DashBoard";
 import NavBar from "./components/navbar";
-import Chat from "./components/chat";
+import Chat from "./pages/chat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Nodifications from "./pages/nodifications";
 import { setOnlineUsers } from "./store/messages";
@@ -37,31 +37,23 @@ function App() {
       (location.pathname === "/login" && userId) ||
       location.pathname === "/"
     ) {
-      navigate("/dashboard");
+      navigate("/home");
     }
   }, [isSignedIn, navigate, location.pathname]);
 
-  // const NavOutlet = () => {
-  //   return (
-  //     <>
-  //       <NavBar />
-  //       <Outlet />
-  //     </>
-  //   );
-  // };
   const queryClient = new QueryClient();
 
   useEffect(() => {
     // Connect user when they log in
     if (userId) {
-      console.log("userId", userId);
+      // console.log("userId", userId);
       // socket.emit("updateReadReceipts", receiveredID);
       socket.emit("user-online", userId);
     }
 
     // Listen for online users updates
     socket.on("online-users", (users) => {
-      console.log(users, "users");
+    //  console.log(users, "users");
 
       dispatch(setOnlineUsers(users));
     });
@@ -98,7 +90,7 @@ function App() {
       }
     });
 
-    // Cleanup listeners on unmount
+    // Cleanup listeners on unmount         
     return () => {
       socket.off("message");
     };

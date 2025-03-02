@@ -19,23 +19,24 @@ import socket from "../../helper/socket";
 import AddGroup from "./AddGroup";
 import { IKImage } from "imagekitio-react";
 import { setMessage } from "@/store/messages";
-
+import AddMembers from "./AddMembers";
 function ChatList({ selectedChat, setSelectedChat }) {
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
   const { userId } = useAuth();
-  //console.log(userId, "userId");
+  // console.log(userId, "userId");
   const { chatuserlist, conversationLoad, isGroup } = useSelector(
     (state) => state.chatlist
   );
   const [groups, setgroups] = useState([]);
-  console.log(chatuserlist, "chatuserlist");
+  // console.log(chatuserlist, "chatuserlist");
   const { onlineUsers } = useSelector((state) => state.messages);
   const location = useLocation();
   const receiverID = location.pathname.split("/")[4];
   const dispatch = useDispatch();
-  console.log(receiverID, "receiverID");
-  console.log(userId, "userId");
+  // console.log(receiverID, "receiverID");
+  // console.log(userId, "userId");
   const {
     data: chatList,
     isLoading,
@@ -51,7 +52,7 @@ function ChatList({ selectedChat, setSelectedChat }) {
           : `http://localhost:3006/api/users/fetchRequestedUsers`;
 
         const response = await axios.get(endpoint, { withCredentials: true });
-        console.log(response);
+        // console.log(response);
         // queryClient.invalidateQueries({ queryKey: ["chats"] });
         setgroups(response.data.group);
         //dispatch(setConversationID({ conversationID: response.data.group.id }));
@@ -96,11 +97,18 @@ function ChatList({ selectedChat, setSelectedChat }) {
     isError: conversationError,
     refetch: refetchConversation,
   } = useQuery({
-    queryKey: ["conversation", receiverID],
+    queryKey: ["conversation", receiverID, isGroup],
     queryFn: async () => {
       try {
-        console.log(receiverID, "receiverID...");
-        console.log(userId, "userId...");
+        console.log("Checking conversation for:", {
+          receiverID,
+          userId,
+          isGroup,
+        });
+
+        // Clear previous conversation data
+        dispatch(setConversationID({ conversationID: null }));
+        dispatch(setMessage([]));
 
         const response = await axios.post(
           `http://localhost:3006/api/messages/check-conversation`,
@@ -113,65 +121,74 @@ function ChatList({ selectedChat, setSelectedChat }) {
             withCredentials: true,
           }
         );
-        console.log(response, "response.....");
+
+        console.log("Conversation check response:", response.data);
 
         if (response.status === 401 || !response.data) {
-          dispatch(setConversationID({ conversationID: null }));
-          dispatch(setMessage([]));
-          return;
+          return null;
         }
 
-        dispatch(setConversationID({ conversationID: response.data }));
+        // Update Redux with the new conversation ID
+        dispatch(
+          setConversationID({
+            conversationID: response.data,
+            isGroup: isGroup,
+          })
+        );
+
         return response.data;
       } catch (error) {
-        dispatch(setConversationID({ conversationID: null }));
-        dispatch(setMessage([]));
-        queryClient.invalidateQueries({ queryKey: ["messages"] });
         console.error("Conversation check error:", error);
         return null;
       }
     },
     enabled: Boolean(userId) && Boolean(receiverID),
-    retry: 1,
+    retry: 0,
     staleTime: 0,
+    cacheTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   dispatch(setConversationLoad(conversationLoading));
-  console.log(conversationID);
+  // console.log(conversationID);
 
   const handleCheckConversation = async ({ receiverID, isGroup }) => {
-    console.log(userId, "userId");
-    console.log(isGroup, "isGroup..");
-    console.log(receiverID, "receiverID");
+    console.log("=== CHAT BUTTON CLICKED ===");
+    console.log("Params:", {
+      receiverID,
+      isGroup,
+      currentConversationID: conversationID,
+    });
 
     if (isGroup == true) {
-      socket.emit("joinRoom", { conversationID: receiverID }); 
+      console.log("Joining group room:", receiverID);
+      socket.emit("joinRoom", { conversationID: receiverID });
     }
-
+    dispatch(setMessage([]));
+    dispatch(setConversationID({ conversationID: null }));
     if (isGroup == false) {
       socket.emit("leaveRoom", { conversationID: conversationID });
     }
 
-    // sessionStorage.setItem("isGroupChat", isGroup);
-
-    if (!conversationID) {
-      console.log("error");
+    if (isGroup) {
+      console.log("Joining group room:", receiverID);
+      socket.emit("joinRoom", { conversationID: receiverID });
     }
 
-    // socket.emit("readMessage", {
-    //   messageData: {
-    //     userId: userId,
-    //   },
-    // });
+    // Invalidate all relevant queries
+    console.log("Invalidating queries");
+    queryClient.invalidateQueries({ queryKey: ["messages"] });
+    queryClient.invalidateQueries({ queryKey: ["conversation"] });
+    queryClient.invalidateQueries({ queryKey: ["sendMessageData"] });
 
-    queryClient.invalidateQueries({ queryKey: ["conversation", receiverID] });
-    refetchConversation();
+    try {
+      await refetchConversation();
+    } catch (error) {
+      console.error("Error refetching conversation:", error);
+    }
   };
 
-  //console.log(chatList, "chatList");
   useEffect(() => {
-    console.log(chatList, "chatList");
-
     if (chatList && chatList.data) {
       const filteredAndMapped = chatList.data
         .filter((chat) => chat.id !== userId && chat.requestStatus !== null)
@@ -184,9 +201,6 @@ function ChatList({ selectedChat, setSelectedChat }) {
       dispatch(setChatList(filteredAndMapped));
     }
   }, [chatList, dispatch, userId]);
-  // console.log(isLoading, "isLoading");
-  console.log(groups, "groups");
-
   return (
     <div className={`flex flex-col gap-2 p-5 `}>
       <div className="flex justify-between items-center">
@@ -217,8 +231,6 @@ function ChatList({ selectedChat, setSelectedChat }) {
                     <ul>
                       {onlineUsers.map((user) => (
                         <>
-                          {/* {console.log(user, "user")}
-                          {console.log(chat.id, "chat.id")} */}
                           {user === chat.id && (
                             <li key={user}>
                               <span className="absolute text-3xl right-[-3px] bottom-[-8px] text-green-500">
@@ -318,11 +330,19 @@ function ChatList({ selectedChat, setSelectedChat }) {
               >
                 Group
               </Button>
+              <div className="absolute right-30">
+                <AddMembers
+                  open={open}
+                  setOpen={setOpen}
+                  users={chatuserlist}
+                  groupId={group.id}
+                />
+              </div>
             </div>
           ))}
         </div>
       </div>
-      {console.log(isGroup, "isGroup...")}
+      {/* console.log(isGroup, "isGroup...") */}
       {isLoading && (
         <div className="h-full flex flex-col gap-4 p-4">
           {[...Array(5)].map((_, index) => (

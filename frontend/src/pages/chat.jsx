@@ -1,18 +1,6 @@
-import { Input } from "@/components/ui/input";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Check,
-  CheckCheck,
-  Loader,
-  Loader2,
-  Pin,
-  PinIcon,
-  Search,
-  Send,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, CheckCheck } from "lucide-react";
 import logo from "@/assets/3px-tile.png";
-import ProfileUpload from "@/helper/ProfileImg";
 import { IKImage } from "imagekitio-react";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
@@ -23,41 +11,9 @@ import axios from "axios";
 import socket from "../../helper/socket";
 import { setMessage } from "@/store/messages";
 import { useDispatch } from "react-redux";
-import { Skeleton } from "@/components/ui/skeleton";
-
-function formatLastSeen(dateString) {
-  if (!dateString) return "";
-
-  const givenDate = new Date(dateString);
-  const currentDate = new Date();
-  const diffInMs = currentDate - givenDate;
-
-  // Convert to different time units
-  const minutes = Math.floor(diffInMs / (1000 * 60));
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  // Show appropriate time format
-  if (minutes < 1) {
-    return "Just now";
-  } else if (minutes < 60) {
-    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
-  } else if (hours < 24) {
-    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-  } else if (days < 7) {
-    return `${days} ${days === 1 ? "day" : "days"} ago`;
-  } else {
-    // For older dates, show the full date and time
-    return givenDate.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-}
-
+import ChatHeader from "@/components/chatHeader";
+import ChatInput from "@/components/chatInput";
+import ChatSkeleton from "@/components/ChatSkeleton";
 function Chat() {
   const dispatch = useDispatch();
   const [username, setUsername] = useState("");
@@ -74,15 +30,16 @@ function Chat() {
   const { chatuserlist, conversationLoad, conversationID, isGroup } =
     useSelector((state) => state.chatlist);
   const { onlineUsers } = useSelector((state) => state.messages);
-  console.log(onlineUsers, "onlineUsers....");
+  // console.log(onlineUsers, "onlineUsers....");
   const [loading, setLoading] = useState(false);
   const { messages } = useSelector((state) => state.messages);
   //console.log(chatuserlist, "chatuserlist");
   // console.log(inputValue, "inputValue");
-  console.log(messages, "messages");
-  console.log(isGroup, "isGroup...");
+  // console.log(messages, "messages");
+  // console.log(isGroup, "isGroup...");
   const getUsername = async () => {
     try {
+      // console.log(reciverID, "reciverID");
       const response = await axios.get(
         `http://localhost:3006/api/users/getUser/${reciverID}`,
         {
@@ -92,17 +49,17 @@ function Chat() {
       console.log(response.data, "response.data");
       setUsername(response.data.username);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
     }
   };
-  console.log(reciverID, "reciverID....");
+  // console.log(reciverID, "reciverID....");
 
   const { data: lastSeen } = useQuery({
     queryKey: ["lastSeen", reciverID],
     queryFn: async () => {
       try {
         // console.log(userId, "userId");
-        console.log(reciverID, "reciverID");
+        // console.log(reciverID, "reciverID");
 
         const response = await axios.get(
           `http://localhost:3006/api/users/last-seen/${reciverID}`,
@@ -110,22 +67,22 @@ function Chat() {
             withCredentials: true,
           }
         );
-        console.log(response.data, "response.data");
+        // console.log(response.data, "response.data");
         return response.data;
       } catch (error) {
-        console.log(error);
+        // console.log(error);
       }
     },
     enabled: !!userId,
   });
-  console.log(lastSeen, "lastSeen....");
+  // console.log(lastSeen, "lastSeen....");
 
   const handleFileClick = () => {
     fileInputRef.current.click();
   };
 
   const handleUpload = async (file) => {
-    console.log(location.pathname.split("/"));
+    // console.log(location.pathname.split("/"));
 
     const formData = new FormData();
     formData.append("file", file);
@@ -138,12 +95,12 @@ function Chat() {
         body: formData,
         credentials: "include",
       });
-      console.log(response);
+      // console.log(response);
 
       const data = await response.json();
-      console.log(data);
+      // console.log(data);
       if (data.success) {
-        console.log("Uploaded Image URL:", data.imageUrl);
+        // console.log("Uploaded Image URL:", data.imageUrl);
         const baseUrl = "https://ik.imagekit.io/hicgxab6ot";
         const filePath = data.imageUrl.replace(baseUrl, "");
         const normalizedPath = filePath.startsWith("/")
@@ -153,32 +110,33 @@ function Chat() {
         toast("Image uploaded successfully");
       }
     } catch (error) {
+      console.log(error); // Keep error log
       toast("Error uploading file");
-      console.error("Error uploading file:", error);
+      console.error("Error uploading file:", error); // Keep error log
     }
-    console.log(location.pathname.split("/"));
+    // console.log(location.pathname.split("/"));
     setLoading(false);
   };
-  console.log(conversationID, "conversationID");
+  // console.log(conversationID, "conversationID");
   // console.log(userId, reciverID, "userId, reciverID");
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async () => {
-      console.log(inputValue, "inputValue");
+      // console.log(inputValue, "inputValue");
       if (inputValue.trim() === "") return;
       if (chatuserlist[0].requestStatus == "pending") {
         toast("Please wait for the user to accept your request");
         return;
       }
-      console.log(conversationID, "conversationID");
+      // console.log(conversationID, "conversationID");
       // console.log(isGroup, "isGroup");
       let endpoint;
       if (conversationID && !isGroup) {
         endpoint = `http://localhost:3006/api/messages/start-new-conversation`;
       } else {
-        console.log("group conversation");
+        // console.log("group conversation");
         endpoint = `http://localhost:3006/api/messages/start-group-conversation`;
       }
-      console.log(endpoint, "endpoint");
+      // console.log(endpoint, "endpoint");
       try {
         const response = await axios.post(
           endpoint,
@@ -193,12 +151,12 @@ function Chat() {
             withCredentials: true,
           }
         );
-        console.log(response);
+        // console.log(response);
         let readReceipt;
         let reciver;
 
         if (isGroup) {
-          console.log("group conversation");
+          // console.log("group conversation");
           readReceipt = "delivered";
           reciver = "group";
         }
@@ -217,43 +175,61 @@ function Chat() {
         setFile(null);
         return response.data;
       } catch (error) {
-        console.log(error);
+        console.log(error); // Keep error log
         toast.error(error.response.data.message);
       }
     },
   });
-  console.log(conversationID, "conversationID");
+  // console.log(conversationID, "conversationID");
   const {
     data: Messages,
     error,
     isLoading,
   } = useQuery({
-    queryKey: ["sendMessageData", reciverID, conversationID],
+    queryKey: ["sendMessageData", reciverID, conversationID, isGroup],
     queryFn: async () => {
-      console.log(conversationID, "conversationID");
+      console.log("=== FETCHING MESSAGES ===");
+      console.log("Params:", { reciverID, conversationID, isGroup });
+
       getUsername();
       try {
         if (!conversationID) {
+          console.log("No conversationID, returning empty array");
+          dispatch(setMessage([]));
           return [];
         }
+
+        console.log("Clearing previous messages");
         dispatch(setMessage([]));
+
+        console.log("Fetching messages for conversationID:", conversationID);
         const response = await axios.get(
           `http://localhost:3006/api/messages/get-messages/${conversationID}`,
           {
             withCredentials: true,
           }
         );
-        console.log(response.data, "dataaaaaa");
+
+        console.log("Messages received:", {
+          count: response.data.length,
+          firstMessage: response.data[0],
+          lastMessage: response.data[response.data.length - 1],
+          conversationID,
+        });
 
         dispatch(setMessage(response.data));
         return response.data;
       } catch (error) {
-        console.log(error);
-        toast.error(error.response.data.message);
+        console.error("Error fetching messages:", error);
         dispatch(setMessage([]));
+        return [];
       }
     },
     enabled: !!conversationID && !!reciverID,
+    // IMPORTANT: Don't cache results between conversations
+    cacheTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   const handleSend = async () => {
@@ -263,14 +239,6 @@ function Chat() {
       toast("Please wait for the user to accept your request");
       return;
     }
-
-    // if (!isGroup) {
-    //   socket.emit("readMessage", {
-    //     messageData: {
-    //       userId: userId,
-    //     },
-    //   });
-    // }
     sendMessage();
   };
 
@@ -287,19 +255,31 @@ function Chat() {
   });
 
   useEffect(() => {
-    // Function to handle incoming messages
     const handleMessage = (message) => {
-      console.log("Message received:", message);
+      console.log("=== SOCKET MESSAGE RECEIVED ===");
+      console.log("Message:", message);
+      console.log("Current state:", {
+        reciverID,
+        userId,
+        messageConversationId: message.conversationId,
+        currentConversationID: conversationID,
+      });
+
+      // IMPORTANT: Only process messages for the current conversation
+      if (message.conversationId !== conversationID) {
+        console.log("Message is for a different conversation, ignoring");
+        return;
+      }
 
       if (
         (message.senderId === reciverID && message.receiverId === userId) ||
         (message.senderId === userId && message.receiverId === reciverID)
       ) {
         const currentMessages = [...messages];
-        console.log(message, "message...");
+        // console.log(message, "message...");
         if (message.senderId === reciverID && message.receiverId === userId) {
           // Incoming message - mark as read
-          console.log(message, "message...");
+          // console.log(message, "message...");
 
           const updatedMessage = { ...message, ReadReceipts: "read" };
 
@@ -315,13 +295,13 @@ function Chat() {
           dispatch(setMessage([...currentMessages, updatedMessage]));
         } else {
           // Outgoing message - add to messages (no functional update)
-          console.log(message, "message...");
+          // console.log(message, "message...");
           dispatch(setMessage([...currentMessages, message]));
         }
       }
       if (message.receiverId == "group") {
-        console.log("group message");
-        console.log(message, "message");
+        // console.log("group message");
+        // console.log(message, "message");
 
         const currentMessages = [...messages]; // Clone
         dispatch(setMessage([...currentMessages, message]));
@@ -329,16 +309,25 @@ function Chat() {
     };
 
     socket.on("message", handleMessage);
-
-    // Clean up
     return () => {
+      console.log("Removing message handler");
       socket.off("message", handleMessage);
     };
-  }, [userId, reciverID, dispatch, messages]);
-  //console.log("messages type:", typeof messages, Array.isArray(messages));
-  // console.log("messages:", messages);
+  }, [userId, reciverID, conversationID, messages, dispatch]);
 
-  // Add this useEffect for cleanup
+  useEffect(() => {
+    console.log("=== MESSAGES UPDATED ===");
+    console.log("Current messages:", {
+      count: messages.length,
+      conversationID,
+      isGroup,
+    });
+  }, [messages, conversationID, isGroup]);
+
+  useEffect(() => {
+    dispatch(setMessage([]));
+  }, []);
+
   useEffect(() => {
     dispatch(setMessage([]));
   }, [conversationID]);
@@ -353,61 +342,11 @@ function Chat() {
         />
       </div>
       <div className="relative flex-1 overflow-hidden">
-        <div className="flex justify-between backdrop-blur-sm items-center p-4">
-          <h1 className="text-2xl font-bold">Chat</h1>
-          <h1 className="text-2xl font-bold">
-            {username.userName ? (
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-gray-600">
-                  {username.userName == "undefined " ? (
-                    <p className="text-blue-600">Group</p>
-                  ) : (
-                    <p className="text-gray-600">{username.userName}</p>
-                  )}
-                </span>
-                <span className="text-gray-400 text-sm">
-                  {lastSeen?.lastSeen && !onlineUsers.includes(reciverID)
-                    ? `Last Seen : ${formatLastSeen(lastSeen.lastSeen)}`
-                    : lastSeen?.lastSeen &&
-                      onlineUsers.includes(reciverID) &&
-                      !isGroup && (
-                        <p className="text-green-600 text-lg font-bold">
-                          online
-                        </p>
-                      )}
-                </span>
-              </div>
-            ) : (
-              <Skeleton className="w-24 h-4" />
-            )}
-          </h1>
-        </div>
+        <ChatHeader lastSeen={lastSeen} username={username} reciverID={reciverID}/>
         <div className="h-[90%] overflow-y-auto p-4">
           <>
             {conversationLoad || isLoading ? (
-              <div className="flex flex-col gap-4 p-4">
-                {[...Array(6)].map((_, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${
-                      index % 2 === 0 ? "justify-start" : "justify-end"
-                    }`}
-                  >
-                    <div className={`flex flex-col gap-2 max-w-[60%]`}>
-                      <Skeleton
-                        className={`h-10 w-40 rounded-2xl ${
-                          index % 2 === 0 ? "bg-amber-50/50" : "bg-blue-600/50"
-                        }`}
-                      />
-                      <Skeleton
-                        className={`h-4 w-20 ${
-                          index % 2 === 0 ? "ml-2" : "ml-auto mr-2"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ChatSkeleton />
             ) : (
               messages.length !== 0 &&
               messages?.map((message) => (
@@ -443,10 +382,10 @@ function Chat() {
                             // Optionally show a fallback image
                           }}
                           onLoad={() => {
-                            console.log(
-                              "Image loaded successfully:",
-                              message.messageImage
-                            );
+                            // console.log(
+                            //   "Image loaded successfully:",
+                            //   message.messageImage
+                            // );
                           }}
                           alt="Message Image"
                           className="max-w-full h-auto rounded"
@@ -495,71 +434,17 @@ function Chat() {
           </>
         </div>
       </div>
-      {/* Input section */}
-      <div className="w-full p-4  rounded-lg backdrop-blur-sm">
-        <div className="w-[100%] mx-auto  relative border-none">
-          {/* You can display a preview image if needed */}
-          {loading && (
-            <div className="text-white  flex items-center m-3 ">
-              <Loader2 className="animate-spin" />
-            </div>
-          )}
-          {filePath && (
-            <>
-              <IKImage
-                urlEndpoint="https://ik.imagekit.io/hicgxab6ot"
-                path={filePath}
-                transformation={[{ height: 100, width: 100 }]}
-                alt="Profile Preview"
-              />
-            </>
-          )}
-          <div className="relative rounded-lg flex items-center">
-            <Input
-              placeholder="Type a message..."
-              value={inputValue}
-              onChange={(e) => {
-                e.preventDefault();
-                setInputValue(e.target.value);
-              }}
-              className="rounded-full h-12 pl-14 pr-14 bg-white/80 backdrop-blur-sm focus:ring-2  focus:ring-blue-500 border-none"
-            />
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*,.pdf,.doc,.docx"
-              onChange={(e) => {
-                e.preventDefault();
-                if (e.target.files[0]) {
-                  handleUpload(e.target.files[0]);
-                }
-              }}
-            />
-            <ProfileUpload ref={fileInputRef} />
-            {/* Pin button that triggers file input */}
-            <Button
-              onClick={handleFileClick}
-              className="absolute left-2 p-2 hover:bg-gray-100/80 transition-colors rounded-full"
-              variant="ghost"
-              size="icon"
-              type="button"
-            >
-              <PinIcon className="h-5 w-5 text-gray-600" />
-            </Button>
-
-            <Button
-              className="absolute right-2 p-2 bg-blue-600 hover:bg-blue-700 transition-colors rounded-full "
-              size="icon"
-              onClick={handleSend}
-              disabled={inputValue.trim() === "" || conversationLoad}
-            >
-              <Send className="h-5 w-5 text-white" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ChatInput
+        inputValue={inputValue}
+        setInputValue={setInputValue}
+        handleSend={handleSend}
+        filePath={filePath}
+        loading={loading}
+        fileInputRef={fileInputRef}
+        handleFileClick={handleFileClick}
+        handleUpload={handleUpload}
+        conversationLoad={conversationLoad}
+      />
     </div>
   );
 }

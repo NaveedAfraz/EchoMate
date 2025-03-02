@@ -118,7 +118,7 @@ const CheckConversation = async (req, res) => {
 
   try {
     const { senderId, receiverId, isGroup } = req.body;
-
+    console.log(senderId, receiverId, isGroup, "senderId, receiverId, isGroup");
     if (!senderId || !receiverId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -142,8 +142,8 @@ const CheckConversation = async (req, res) => {
          WHERE c.id = ? AND p.participantID = ? AND c.\`group\` = 'yes'`,
         [receiverId, senderId]
       );
-    }
-
+    }     
+    console.log(rows[0]?.id, "rows");
     if (rows.length > 0) {
       if (isGroup) {
         return res.status(200).json(parseInt(receiverId));
@@ -190,9 +190,9 @@ const GetMessages = async (req, res) => {
 
     // If no messages found, return empty array with 200 status
     if (rows.length === 0) {
-      return res.status(200).json([]);
+      return res.status(404).json({ message: "No messages found" });
     }
-
+    connection.commit();
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);

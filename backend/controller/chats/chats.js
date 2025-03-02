@@ -324,6 +324,7 @@ const newGroup = async (req, res) => {
 const addParticipantsINGroup = async (req, res) => {
   try {
     const { conversationID, participantID } = req.body;
+    console.log(conversationID, participantID, "conversationID, participantID");
     if (!conversationID || !participantID) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -343,6 +344,30 @@ const addParticipantsINGroup = async (req, res) => {
   }
 };
 
+const getGroupMembers = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      return res.status(400).json({ message: "Group ID is required" });
+    }
+
+    const [members] = await connection.query(
+      "SELECT * FROM participations WHERE conversationID = ?",
+      [groupId]
+    );
+
+    return res.status(200).json(members);
+  } catch (error) {
+    console.error("Error fetching group members:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   getSearchResults,
   sendRequest,
@@ -352,4 +377,5 @@ module.exports = {
   getLastSeen,
   newGroup,
   addParticipantsINGroup,
+  getGroupMembers,
 };
