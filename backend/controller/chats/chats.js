@@ -345,7 +345,7 @@ const addParticipantsINGroup = async (req, res) => {
 };
 
 const getGroupMembers = async (req, res) => {
-  const connection = await pool.getConnection();
+  const connection = await pool.getConnection(); 
 
   try {
     const { groupId } = req.params;
